@@ -10,4 +10,7 @@ Usage: Drag an "rbsong" file onto the script, or use it in a batch to convert mu
 
 Made for Python 3.9. Should not need any dependencies.
 
+https://user-images.githubusercontent.com/74471839/141537849-582c1ba7-dfc4-4dfe-9715-0bd5794880af.mp4
+
+
 ### More to come
