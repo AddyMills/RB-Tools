@@ -130,10 +130,19 @@ def getLipData(rbsong, lipstart, lipdata):
         for x in range(0, visemeNameLen):
             visemeName.append(chr(rbsong[lipstart]))
             if x == 0: #RB2/3 have the visemes capitalized, while RB4 does not. This converts the first letter to a capital in hex
-                visemeByteTemp.append(rbsong[lipstart]-0x20)
+                if chr(rbsong[lipstart]) == "e": #Except if the viseme name starts with "exp" apparently
+                    visemeByteTemp.append(rbsong[lipstart])
+                else:
+                    visemeByteTemp.append(rbsong[lipstart]-0x20)
             else:
                 visemeByteTemp.append(rbsong[lipstart])
             lipstart += 1
+        exp_check = visemeByteTemp[4:7]
+        if exp_check != b'exp':
+            if chr(visemeByteTemp[4]) == 'e':
+                visemeByteTemp[4] -= 0x20
+        #print(visemeByteTemp)
+        #print(exp_check)
         visemes.append(''.join(visemeName).capitalize())
         visemeByte.extend(visemeByteTemp)
     #print(len(visemes), visemes)
