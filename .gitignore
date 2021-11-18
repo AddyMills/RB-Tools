@@ -5,3 +5,4 @@
 *.lipsync
 *.pyc
 unfinished/
+.idea/
