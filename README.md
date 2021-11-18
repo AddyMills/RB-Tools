@@ -20,5 +20,7 @@ Takes an RB2/3 or converted RB4 lipsync file and produces a bar chart for each f
 
 This is just for fun. Images do take a while to generate. Depending on length, most songs are between 6,000-8,000 frames. I want to try and implement multiprocessing to speed up generation, but can't figure it out at this point. Something for the future to implement.
 
+https://user-images.githubusercontent.com/74471839/142361856-d61dd4b9-d81a-4f78-810f-d6a318b25b5f.mp4
+
 
 ### More to come
