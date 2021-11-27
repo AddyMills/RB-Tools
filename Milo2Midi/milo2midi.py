@@ -1,8 +1,7 @@
+import os
 import struct
 import sys
-import os
-import time
-from bisect import bisect_left
+
 import numpy as np
 from mido import Message, MetaMessage, MidiFile, MidiTrack
 from mido import merge_tracks
@@ -123,19 +122,16 @@ def tempMap(mid):
             if y == 0:
                 x.append(tempoMapItem(totalTime, msg.tempo, msg.tempo))
                 z.append(totalTime)
-                # x.append([y, totalTime, msg.tempo, avgTempo])
                 y = y + 1
             elif y == 1:
                 avgTempo = x[y - 1].tempo
                 x.append(tempoMapItem(totalTime, msg.tempo, avgTempo))
                 z.append(totalTime)
-                # x.append([y, totalTime, msg.tempo, avgTempo])
                 y = y + 1
             else:
                 avgTempo = rollingAverage(x[y - 1].time, totalTime, avgTempo, x[y - 1].tempo)
                 x.append(tempoMapItem(totalTime, msg.tempo, avgTempo))
                 z.append(totalTime)
-                # x.append([y, totalTime, msg.tempo, avgTempo])
                 y = y + 1
 
     return x, z
@@ -155,37 +151,33 @@ def pullData(anim, start, animType):  # PP events seem to have 4 extra bytes in 
     # Always seems to be 0000. If not, gives warning.
 
     events, eventsByte, start = readFourBytes(anim, start)
-    # print(start, events, eventsByte)
     eventsList = []
-    # print(animType)
     for x in range(events):
         if animType == 'postproc':
             unknown, unknownByte, start = readFourBytes(anim, start)
             if unknown != 0:
-                print("Unknown variable not equal to 0. Please contact script creator.")
+                print("Unknown variable not equal to 0. Please contact me.")
+                input("Press Enter to continue...")
         eventLen, eventLenByte, start = readFourBytes(anim, start)
         event = []
         for y in range(eventLen):
             event.append(chr(anim[start]))
             start += 1
-        if event == []:
-            event = eventsList[-1].event
+        if not event:
+            if not eventsList:
+                eventsList = -1
+            else:
+                event = eventsList[-1].event
         else:
             event = ''.join(event)
         time, timeByte, start = readFourBytes(anim, start)
-        eventsList.append(venueItem(struct.unpack(console.pack, timeByte)[0] / 30, event))
-        # print(eventsList[-1])
-    # print("")
+        if eventsList != -1:
+            eventsList.append(venueItem(struct.unpack(console.pack, timeByte)[0] / 30, event))
     return eventsList
 
 
 def midiProcessing(mid):
     tempoMap, ticks = tempMap(mid)
-    # for x in tempoMap:
-    # print(x.time, x.tempo, x.avgTempo)
-    """mid = mido.MidiFile(type=1)
-    mid.add_track()  # "Tempo" track
-    mid.tracks[0].append(mido.MetaMessage('set_tempo', tempo = 500000, time = 0))  # Create default mid of 120 BPM"""
     endEvent = 0
     for track in mid.tracks:
         if track.name == "EVENTS":
@@ -196,36 +188,7 @@ def midiProcessing(mid):
                         break
     for x, y in enumerate(tempoMap):
         y.seconds = t2s(y.time, tpb, y.avgTempo)
-    """tIter = iter(ticks)  # Generate an iterable of all the ticks where changes appear.
-    tickList = []
-    for x in range(endEvent):
-        if x in ticks:
-            curTick = next(tIter)
-            curIndex = ticks.index(curTick)
-        # print(x, returnSeconds(curTick, tempoMap[curIndex].avgTempo, x-curTick, tempoMap[curIndex].tempo))
-        tickList.append(returnSeconds(curTick, tempoMap[curIndex].avgTempo, x - curTick, tempoMap[curIndex].tempo))
-    print(endEvent == len(tickList))"""
-
     return tempoMap  # tickList
-
-
-def take_closest(myList, myNumber):
-    """
-    Assumes myList is sorted. Returns closest value to myNumber.
-
-    If two numbers are equally close, return the smallest number.
-    """
-    pos = bisect_left(myList, myNumber)
-    if pos == 0:
-        return myList[0]
-    if pos == len(myList):
-        return myList[-1]
-    before = myList[pos - 1]
-    after = myList[pos]
-    if after - myNumber < myNumber - before:
-        return after
-    else:
-        return before
 
 
 def songArray(songMap):
@@ -241,20 +204,17 @@ def songArray(songMap):
     return songTime, songSeconds, songTempo, songAvgTempo
 
 
-def parseMiloData(mid, container, merge=False):
-    return
-
 def defaultMidi():
     mid = MidiFile()
     track = MidiTrack()
     mid.tracks.append(track)
-    track.append(MetaMessage('set_tempo', tempo = 500000, time = 0))
-    track.append(MetaMessage('time_signature', numerator = 4, denominator = 4, time=0))
+    track.append(MetaMessage('set_tempo', tempo=500000, time=0))
+    track.append(MetaMessage('time_signature', numerator=4, denominator=4, time=0))
     return mid
 
-def main(anim, mid, output):
 
-    #startP = time.time()
+def main(anim, mid, output):
+    # startP = time.time()
 
     eventsDict = {}
     for x in animParts:
@@ -265,133 +225,103 @@ def main(anim, mid, output):
         else:
             start += 13
         eventsDict[x] = pullData(anim, start, x)
-    #for x in eventsDict['spot_vocal']:
-        #print(x.time, x.event)
     songMap = midiProcessing(mid)
     songTime, songSeconds, songTempo, songAvgTempo = songArray(songMap)
-    # print(songTime, songSeconds, songTempo, songAvgTempo)
     secondsArray = np.array(songSeconds)
-    # print(secondsArray[secondsArray <= 0].max())
 
     toMerge = []
     for tracks in lights:
-        timeStart = 0
-        tempTrack = MidiTrack()
-        prevType = 'note_off'
-        for y, x in enumerate(eventsDict[tracks]):  # Goes through each event in the milo, and finds their time in ticks
-            mapLower = secondsArray[secondsArray <= x.time].max()
-            arrIndex = songSeconds.index(mapLower)
-            timeFromChange = x.time - songSeconds[arrIndex]
-            ticksFromChange = s2t(timeFromChange, tpb, songTempo[arrIndex])
-            timeVal = songTime[arrIndex] + round(ticksFromChange) - timeStart
-            noteVal = 0
+        if eventsDict[tracks] != -1:
+            timeStart = 0
+            tempTrack = MidiTrack()
+            prevType = 'note_off'
+            for y, x in enumerate(eventsDict[tracks]):  # Goes through each event in the milo, and finds their time in ticks
+                mapLower = secondsArray[secondsArray <= x.time].max()
+                arrIndex = songSeconds.index(mapLower)
+                timeFromChange = x.time - songSeconds[arrIndex]
+                ticksFromChange = s2t(timeFromChange, tpb, songTempo[arrIndex])
+                timeVal = songTime[arrIndex] + round(ticksFromChange) - timeStart
+                noteVal = 0
 
-            if tracks.endswith('_sing') or tracks.startswith('spot_'):
-                if tracks.endswith('_sing'):
-                    if tracks.startswith('part2'):
-                        noteVal = 87
-                    elif tracks.startswith('part3'):
-                        noteVal = 85
-                    elif tracks.startswith('part4'):
-                        noteVal = 86
-                    else:
-                        print(f"Unknown singalong event found at {x.time}")
-                        exit()
-                if tracks.startswith('spot_'):
-                    # print(tracks)
-                    if tracks.endswith('keyboard'):
-                        noteVal = 41
-                    elif tracks.endswith('vocal'):
-                        noteVal = 40
-                    elif tracks.endswith('guitar'):
-                        noteVal = 39
-                    elif tracks.endswith('drums'):
-                        noteVal = 38
-                    elif tracks.endswith('bass'):
-                        noteVal = 37
-                    else:
-                        print(f"Unknown spotlight event found at {x.time}")
-                        exit()
+                if tracks.endswith('_sing') or tracks.startswith('spot_'):
+                    if tracks.endswith('_sing'):
+                        if tracks.startswith('part2'):
+                            noteVal = 87
+                        elif tracks.startswith('part3'):
+                            noteVal = 85
+                        elif tracks.startswith('part4'):
+                            noteVal = 86
+                        else:
+                            print(f"Unknown singalong event found at {x.time}")
+                            exit()
+                    if tracks.startswith('spot_'):
+                        # print(tracks)
+                        if tracks.endswith('keyboard'):
+                            noteVal = 41
+                        elif tracks.endswith('vocal'):
+                            noteVal = 40
+                        elif tracks.endswith('guitar'):
+                            noteVal = 39
+                        elif tracks.endswith('drums'):
+                            noteVal = 38
+                        elif tracks.endswith('bass'):
+                            noteVal = 37
+                        else:
+                            print(f"Unknown spotlight event found at {x.time}")
+                            exit()
 
-                if x.event.endswith('on'):
-                    if prevType == 'note_on':
+                    if x.event.endswith('on'):
+                        if prevType == 'note_on':
+                            tempTrack.append(Message('note_off', note=noteVal, velocity=0, time=timeVal))
+                            timeStart += tempTrack[-1].time
+                            tempTrack.append(Message('note_on', note=noteVal, velocity=100, time=0))
+                        else:
+                            tempTrack.append(Message('note_on', note=noteVal, velocity=100, time=timeVal))
+                        prevType = 'note_on'
+                    elif x.event.endswith('off'):
                         tempTrack.append(Message('note_off', note=noteVal, velocity=0, time=timeVal))
-                        timeStart += tempTrack[-1].time
-                        # timeStart += tempTrack[-1].time
-                        tempTrack.append(Message('note_on', note=noteVal, velocity=100, time=0))
+                        prevType = 'note_off'
                     else:
-                        tempTrack.append(Message('note_on', note=noteVal, velocity=100, time=timeVal))
-                    prevType = 'note_on'
-                elif x.event.endswith('off'):
-                    tempTrack.append(Message('note_off', note=noteVal, velocity=0, time=timeVal))
-                    prevType = 'note_off'
+                        print(f"Unknown state event found at {x.time}")
+                        exit()
                 else:
-                    print(f"Unknown state event found at {x.time}")
-                    exit()
-            else:
-                if tracks == 'lights':
-                    textEvent = f'[lighting ({x.event})]'
-                else:
-                    textEvent = f'[{x.event}]'
-                tempTrack.append(MetaMessage('text', text=textEvent, time=timeVal))
-            timeStart += tempTrack[-1].time
-            #if tracks == 'spot_vocal':
-                #print(timeStart, x.event)
-        toMerge.append(tempTrack)
-    # for tracks in playerAnim:
-    # for tracks in rest:
+                    if tracks == 'lights':
+                        textEvent = f'[lighting ({x.event})]'
+                    else:
+                        textEvent = f'[{x.event}]'
+                    tempTrack.append(MetaMessage('text', text=textEvent, time=timeVal))
+                timeStart += tempTrack[-1].time
+            toMerge.append(tempTrack)
     mid.tracks.append(merge_tracks(toMerge))
     mid.tracks[-1].name = "lights"
     for tracks in separate:
-        if tracks.startswith('shot_'):
-            tname = 'venue_' + tracks[-2:]
-        else:
-            tname = tracks
-        mid.add_track(name=tname)
-        timeStart = 0
-        for y, x in enumerate(eventsDict[tracks]):
-            mapLower = secondsArray[secondsArray <= x.time].max()
-            arrIndex = songSeconds.index(mapLower)
-            timeFromChange = x.time - songSeconds[arrIndex]
-            ticksFromChange = s2t(timeFromChange, tpb, songTempo[arrIndex])
-            timeVal = songTime[arrIndex] + round(ticksFromChange) - timeStart
-            if tracks == 'fog':
-                textEvent = f'[Fog{x.event.capitalize()}]'
+        if eventsDict[tracks] != -1:
+            if tracks.startswith('shot_'):
+                tname = 'venue_' + tracks[-2:]
             else:
-                textEvent = f'[{x.event}]'
-            mid.tracks[-1].append(MetaMessage('text', text=textEvent, time=timeVal))
-            #print(timeStart)
-            timeStart += mid.tracks[-1][-1].time
-    # print(mid.tracks[-1], len(eventsDict['shot_bg']))
-    # for x in mid.tracks[-1]:
-    # print(x)
+                tname = tracks
+            mid.add_track(name=tname)
+            timeStart = 0
+            for y, x in enumerate(eventsDict[tracks]):
+                mapLower = secondsArray[secondsArray <= x.time].max()
+                arrIndex = songSeconds.index(mapLower)
+                timeFromChange = x.time - songSeconds[arrIndex]
+                ticksFromChange = s2t(timeFromChange, tpb, songTempo[arrIndex])
+                timeVal = songTime[arrIndex] + round(ticksFromChange) - timeStart
+                if tracks == 'fog':
+                    textEvent = f'[Fog{x.event.capitalize()}]'
+                else:
+                    textEvent = f'[{x.event}]'
+                mid.tracks[-1].append(MetaMessage('text', text=textEvent, time=timeVal))
+                timeStart += mid.tracks[-1][-1].time
 
     mid.save(filename=f'{output}_merged.mid')
-
-    # print(songTicks[3840])
-    # for key in eventsDict:
-    """crowdIter = iter(eventsDict['crowd'])
-    currIter = next(crowdIter)
-    for x, y in enumerate(songTicks):
-        if currIter.time <= y:
-            print(x, y, currIter.event)
-            try:
-                currIter = next(crowdIter)
-            except StopIteration:
-                break
-            except:
-                print(f"Iteration failed.")
-
-        pass  # print(mido.second2tick(event.time, tpb, 500000))"""
-
-    # print(anim.find(animParts['postproc']) + len(animParts['postproc']))
-    #endP = time.time()
-    #print(f"Runtime of the program is {endP - startP}")
 
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
-        print("No file found. Please run this script with a \".anim\" file and optionally a MIDI file to merge together")
+        print(
+            "No file found. Please run this script with a \".anim\" file and optionally a MIDI file to merge together")
         exit()
     extensions = {
     }
@@ -407,7 +337,5 @@ if __name__ == "__main__":
         mid = MidiFile(extensions['mid'], clip=True)
     except:
         mid = defaultMidi()
-    #print(extensions)
-    #mid.print_tracks()
     output = os.path.splitext(sys.argv[1])[0]
     main(anim, mid, output)
