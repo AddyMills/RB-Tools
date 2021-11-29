@@ -24,7 +24,7 @@ https://user-images.githubusercontent.com/74471839/142361856-d61dd4b9-d81a-4f78-
 
 ## Milo2Midi
 
-Dependencies: mido
+Dependencies: mido, numpy
 
 Takes a song's anim file (found in the milo of a song) and converts all data to a MIDI track. Think of this as a reverse Milo Mod too.
 
@@ -38,4 +38,11 @@ If a MIDI file is not present, it uses a default MIDI file with a BPM of 120bpm.
 
 The name of the output will be a MIDI file and use the name and folder location of your first argument with "merged" added to it.
 
-### More to come
+## RBsong2Midi
+
+Dependencies: mido
+
+Similar to Milo2Midi, but this works with RB4's rbsong file. Takes in an rbsong file as an argument, and outputs a MIDI file with the venue events from the rbsong file.
+
+MIDI file with the same name as the rbsong is **required** for this script to work.
+
