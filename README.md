@@ -1,6 +1,17 @@
 # RB-Tools
-Various Tools to work with Rock Band files. Written using Python 3.9. Dependencies are listed in each section.
+Various Tools to work with Rock Band files. Written using Python 3.9. Dependencies, if any, are listed in each section.
 
+## Lipsync2Midi
+
+Dependencies: mido, numpy
+
+Takes a lipsync file and inserts all viseme events into a MIDI file that is compatible with Onyx's *Lipsync* tab found in Other Tools. Useful for viewing official viseme data, or splicing MIDI tracks together and have Onyx make a combined lipsync for you.
+
+Usage: Run the script with a lipsync file as its variable. The program will look for all lipsync files in the folder and outputs a 120bpm MIDI that has the visemes synced to the song.
+
+Optionally, if you have a MIDI file in the same folder as the lipsync files, it will add the LIPSYNC# tracks to that MIDI. If you use this functionality, make sure to only have one MIDI file in the folder. Multiple MIDI files will result in duplicate tracks for some reason I haven't been able to debug. But only having one will not cause duplicates.
+
+Link to Onyx: https://github.com/mtolly/onyxite-customs
 
 ## Lipsync Converter
 
