@@ -1,17 +1,6 @@
 # RB-Tools
 Various Tools to work with Rock Band files. Written using Python 3.9. Dependencies, if any, are listed in each section.
 
-## Lipsync2Midi
-
-Dependencies: mido, numpy
-
-Takes a lipsync file and inserts all viseme events into a MIDI file that is compatible with Onyx's *Lipsync* tab found in Other Tools. Useful for viewing official viseme data, or splicing MIDI tracks together and have Onyx make a combined lipsync for you.
-
-Usage: Run the script with a lipsync file as its variable. The program will look for all lipsync files in the folder and outputs a 120bpm MIDI that has the visemes synced to the song.
-
-Optionally, if you have a MIDI file in the same folder as the lipsync files, it will add the LIPSYNC# tracks to that MIDI. If you use this functionality, make sure to only have one MIDI file in the folder. Multiple MIDI files will result in duplicate tracks for some reason I haven't been able to debug. But only having one will not cause duplicates.
-
-Link to Onyx: https://github.com/mtolly/onyxite-customs
 
 ## Lipsync Converter
 
@@ -32,6 +21,18 @@ Takes an RB2/3 or converted RB4 lipsync file and produces a bar chart for each f
 This is just for fun. Images do take a while to generate. Depending on length, most songs are between 6,000-8,000 frames. I want to try and implement multiprocessing to speed up generation, but can't figure it out at this point. Something for the future to implement.
 
 https://user-images.githubusercontent.com/74471839/142361856-d61dd4b9-d81a-4f78-810f-d6a318b25b5f.mp4
+
+## Lipsync2Midi
+
+Dependencies: mido, numpy
+
+Takes a lipsync file and inserts all viseme events into a MIDI file that is compatible with Onyx's *Lipsync* tab found in Other Tools. Useful for viewing official viseme data, or splicing MIDI tracks together and have Onyx make a combined lipsync for you.
+
+Usage: Run the script with a lipsync file as its variable. The program will look for all lipsync files in the folder and outputs a 120bpm MIDI that has the visemes synced to the song.
+
+Optionally, if you have a MIDI file in the same folder as the lipsync files, it will add the LIPSYNC# tracks to that MIDI. If you use this functionality, make sure to only have one MIDI file in the folder. Multiple MIDI files will result in duplicate tracks for some reason I haven't been able to debug. But only having one will not cause duplicates.
+
+Link to Onyx: https://github.com/mtolly/onyxite-customs
 
 ## Milo2Midi
 
