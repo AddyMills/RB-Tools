@@ -171,8 +171,12 @@ def pullData(anim, start, animType):  # PP events seem to have 4 extra bytes in 
         else:
             event = ''.join(event)
         time, timeByte, start = readFourBytes(anim, start)
+        if struct.unpack(console.pack, timeByte)[0] / 30 < 0:
+            timeAdd = 0
+        else:
+            timeAdd = struct.unpack(console.pack, timeByte)[0] / 30
         if eventsList != -1:
-            eventsList.append(venueItem(struct.unpack(console.pack, timeByte)[0] / 30, event))
+            eventsList.append(venueItem(timeAdd, event))
     return eventsList
 
 
@@ -228,14 +232,17 @@ def main(anim, mid, output):
     songMap = midiProcessing(mid)
     songTime, songSeconds, songTempo, songAvgTempo = songArray(songMap)
     secondsArray = np.array(songSeconds)
-
+    #print(songSeconds)
     toMerge = []
     for tracks in lights:
+        #print(eventsDict[tracks])
         if eventsDict[tracks] != -1:
             timeStart = 0
             tempTrack = MidiTrack()
             prevType = 'note_off'
+            #print(tracks)
             for y, x in enumerate(eventsDict[tracks]):  # Goes through each event in the milo, and finds their time in ticks
+                #print(x.time)
                 mapLower = secondsArray[secondsArray <= x.time].max()
                 arrIndex = songSeconds.index(mapLower)
                 timeFromChange = x.time - songSeconds[arrIndex]
