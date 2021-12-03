@@ -109,6 +109,17 @@ def readFourBytes(anim, start):
     x = int.from_bytes(xBytes, console.endian)
     return x, xBytes, start
 
+def readSixteenBytes(anim, start):
+    x = []
+    for y in range(16):  # Iterate through the 16 bytes to determine rbsong type
+        x.append(chr(anim[start]))
+        start += 1
+    check = ''.join(x)
+    if check == "hidden_in_editor":
+        return True
+    else:
+        return False
+
 
 def defaultMidi():
     mid = MidiFile()
@@ -123,6 +134,10 @@ def pullData(anim, start, beat):
     start_loc = b'driven_prop'
     start = anim.find(start_loc, start) + len(start_loc) + 4
     events, eventsByte, start = readFourBytes(anim, start)
+    if readSixteenBytes(anim, start):
+        start += 43
+        events, eventsByte, start = readFourBytes(anim, start)
+
     eventsList = []
     for x in range(events):
         time, timeByte, start = readFourBytes(anim, start)
@@ -158,7 +173,7 @@ def pullData(anim, start, beat):
         animName.append(chr(anim[start]))
         start += 1
     animName = ''.join(animName)
-    print(animName)
+    #print(animName)
     return eventsList, animName, start
 
 
@@ -260,9 +275,11 @@ def main(anim, mid, output):
     beat = grabBeatTrack(mid)
     start = 0
     eventTotal = anim.count(b'driven_prop')
+    #print(eventTotal)
     eventsDict = {}
     for x in range(eventTotal):
         events, eventsName, start = pullData(anim, start, beat)
+        #print(eventsName)
         eventsDict[eventsName] = events
     mid = parseData(eventsDict, mid)
     mid.save(filename=f'{output}_venue.mid')
@@ -272,7 +289,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) == 1:
         print(
-            "No file found. Please run this script with a \".rbsong\" file and optionally a MIDI file to merge together")
+            "No file found. Please run this script with a \".rbsong\" file and a MIDI file to merge together")
         input("Press any key to exit")
         exit()
     if sys.argv[1].endswith(".rbsong"):
