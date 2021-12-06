@@ -221,20 +221,28 @@ def main(anim, mid, output):
     # startP = time.time()
 
     eventsDict = {}
+    skip = []
     for x in animParts:
-        start = anim.find(animParts[x]) + len(animParts[x])
-        # The number of "interp" ending events is 5 bytes away from the title instead of the usual 13.
-        if animParts[x].endswith(b'interp'):
-            start += 5
+        if anim.find(animParts[x]) == -1:
+            skip.append(x)
+            continue
         else:
-            start += 13
-        eventsDict[x] = pullData(anim, start, x)
+            print(anim.find(animParts[x]))
+            start = anim.find(animParts[x]) + len(animParts[x])
+            # The number of "interp" ending events is 5 bytes away from the title instead of the usual 13.
+            if animParts[x].endswith(b'interp'):
+                start += 5
+            else:
+                start += 13
+            eventsDict[x] = pullData(anim, start, x)
     songMap = midiProcessing(mid)
     songTime, songSeconds, songTempo, songAvgTempo = songArray(songMap)
     secondsArray = np.array(songSeconds)
     #print(songSeconds)
     toMerge = []
     for tracks in lights:
+        if tracks in skip:
+            continue
         #print(eventsDict[tracks])
         if eventsDict[tracks] != -1:
             timeStart = 0
@@ -302,6 +310,8 @@ def main(anim, mid, output):
     mid.tracks.append(merge_tracks(toMerge))
     mid.tracks[-1].name = "lights"
     for tracks in separate:
+        if tracks in skip:
+            continue
         if eventsDict[tracks] != -1:
             if tracks.startswith('shot_'):
                 tname = 'venue_' + tracks[-2:]
