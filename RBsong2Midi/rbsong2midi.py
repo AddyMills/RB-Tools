@@ -85,11 +85,10 @@ rest = ['shot_5',  # Potentially for the future
         'shot_gk',
         ]
 
-oneVenueList = [
-    'lights',
-    'postproc',
-    'shot_bg',
-]
+oneVenueTrack = ['lightpreset', 'lightpreset_keyframe', 'world_event', 'spot_guitar', 'spot_bass', 'spot_drums', 'spot_keyboard',
+            'spot_vocal', 'part2_sing', 'part3_sing', 'part4_sing', 'postproc', 'shot_bg']
+
+oneVenueSep = ['crowd', 'stagekit_fog']
 
 ppDic = {
     'profilm_a': 'ProFilm_a',
@@ -177,9 +176,15 @@ def pullData(anim, start, beat):
     return eventsList, animName, start
 
 
-def parseData(eventsDict, mid, oneVenue=False):
+def parseData(eventsDict, mid, oneVenue):
+    if oneVenue:
+        combined = oneVenueTrack
+        sep = oneVenueSep
+    else:
+        combined = lights
+        sep = separate
     toMerge = []
-    for tracks in lights:
+    for tracks in combined:
         if eventsDict[tracks] != -1:
             timeStart = 0
             tempTrack = MidiTrack()
@@ -235,8 +240,11 @@ def parseData(eventsDict, mid, oneVenue=False):
                 timeStart = x.time
             toMerge.append(tempTrack)
     mid.tracks.append(merge_tracks(toMerge))
-    mid.tracks[-1].name = "lights"
-    for tracks in separate:
+    if combined == oneVenueTrack:
+        mid.tracks[-1].name = "VENUE"
+    else:
+        mid.tracks[-1].name = "lights"
+    for tracks in sep:
         if eventsDict[tracks] != -1:
             tname = tracks
             mid.add_track(name=tname)
@@ -271,7 +279,7 @@ def grabBeatTrack(mid):
     return beatNotes
 
 
-def main(anim, mid, output):
+def main(anim, mid, output, oneVenue):
     beat = grabBeatTrack(mid)
     start = 0
     eventTotal = anim.count(b'driven_prop')
@@ -281,7 +289,7 @@ def main(anim, mid, output):
         events, eventsName, start = pullData(anim, start, beat)
         #print(eventsName)
         eventsDict[eventsName] = events
-    mid = parseData(eventsDict, mid)
+    mid = parseData(eventsDict, mid, oneVenue)
     mid.save(filename=f'{output}_venue.mid')
 
 
@@ -306,4 +314,8 @@ if __name__ == "__main__":
         input("Press any key to exit")
         exit()
     output = os.path.splitext(sys.argv[1])[0]
-    main(anim, mid, output)
+    if 'separate' in sys.argv:
+        oneVenue = False
+    else:
+        oneVenue = True
+    main(anim, mid, output, oneVenue)

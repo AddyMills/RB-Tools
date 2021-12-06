@@ -71,31 +71,17 @@ animParts = {
     'world_event': b'world_event'
 }
 
-playerAnim = ['bass_intensity',
-              'guitar_intensity',
-              'drum_intensity',
-              'mic_intensity',
-              'keyboard_intensity'
-              ]
+playerAnim = ['bass_intensity', 'guitar_intensity', 'drum_intensity', 'mic_intensity', 'keyboard_intensity']
 
-lights = ['lights',
-          'keyframe',
-          'world_event',
-          'spot_guitar',
-          'spot_bass',
-          'spot_drums',
-          'spot_keyboard',
-          'spot_vocal',
-          'part2_sing',
-          'part3_sing',
-          'part4_sing']
+lights = ['lights', 'keyframe', 'world_event', 'spot_guitar', 'spot_bass', 'spot_drums', 'spot_keyboard', 'spot_vocal',
+          'part2_sing', 'part3_sing', 'part4_sing']
 
-separate = ['postproc',
-            'shot_bg',
-            'shot_bk',
-            'shot_gk',
-            'crowd',
-            'fog']
+separate = ['postproc', 'shot_bg', 'shot_bk', 'shot_gk', 'crowd', 'fog']
+
+oneVenueTrack = ['lights', 'keyframe', 'world_event', 'spot_guitar', 'spot_bass', 'spot_drums', 'spot_keyboard',
+            'spot_vocal', 'part2_sing', 'part3_sing', 'part4_sing', 'postproc', 'shot_bg']
+
+oneVenueSep = ['crowd', 'fog']
 
 rest = ['shot_5']
 
@@ -217,40 +203,23 @@ def defaultMidi():
     return mid
 
 
-def main(anim, mid, output):
-    # startP = time.time()
-
-    eventsDict = {}
-    skip = []
-    for x in animParts:
-        if anim.find(animParts[x]) == -1:
-            skip.append(x)
-            continue
-        else:
-            print(anim.find(animParts[x]))
-            start = anim.find(animParts[x]) + len(animParts[x])
-            # The number of "interp" ending events is 5 bytes away from the title instead of the usual 13.
-            if animParts[x].endswith(b'interp'):
-                start += 5
-            else:
-                start += 13
-            eventsDict[x] = pullData(anim, start, x)
+def makeMidiTracks(mid, eventsDict, skip, combined, separate):
     songMap = midiProcessing(mid)
     songTime, songSeconds, songTempo, songAvgTempo = songArray(songMap)
     secondsArray = np.array(songSeconds)
-    #print(songSeconds)
     toMerge = []
-    for tracks in lights:
+    for tracks in combined:
         if tracks in skip:
             continue
-        #print(eventsDict[tracks])
+        # print(eventsDict[tracks])
         if eventsDict[tracks] != -1:
             timeStart = 0
             tempTrack = MidiTrack()
             prevType = 'note_off'
-            #print(tracks)
-            for y, x in enumerate(eventsDict[tracks]):  # Goes through each event in the milo, and finds their time in ticks
-                #print(x.time)
+            # print(tracks)
+            for y, x in enumerate(
+                    eventsDict[tracks]):  # Goes through each event in the milo, and finds their time in ticks
+                # print(x.time)
                 mapLower = secondsArray[secondsArray <= x.time].max()
                 arrIndex = songSeconds.index(mapLower)
                 timeFromChange = x.time - songSeconds[arrIndex]
@@ -308,7 +277,10 @@ def main(anim, mid, output):
                 timeStart += tempTrack[-1].time
             toMerge.append(tempTrack)
     mid.tracks.append(merge_tracks(toMerge))
-    mid.tracks[-1].name = "lights"
+    if combined == oneVenueTrack:
+        mid.tracks[-1].name = "VENUE"
+    else:
+        mid.tracks[-1].name = "lights"
     for tracks in separate:
         if tracks in skip:
             continue
@@ -331,6 +303,35 @@ def main(anim, mid, output):
                     textEvent = f'[{x.event}]'
                 mid.tracks[-1].append(MetaMessage('text', text=textEvent, time=timeVal))
                 timeStart += mid.tracks[-1][-1].time
+    return mid
+
+
+def main(anim, mid, output, oneVenue):
+    # startP = time.time()
+
+    eventsDict = {}
+    skip = []
+    for x in animParts:
+        if anim.find(animParts[x]) == -1:
+            skip.append(x)
+            continue
+        else:
+            #print(anim.find(animParts[x]))
+            start = anim.find(animParts[x]) + len(animParts[x])
+            # The number of "interp" ending events is 5 bytes away from the title instead of the usual 13.
+            if animParts[x].endswith(b'interp'):
+                start += 5
+            else:
+                start += 13
+            eventsDict[x] = pullData(anim, start, x)
+    if oneVenue:
+        combined = oneVenueTrack
+        sep = oneVenueSep
+    else:
+        combined = lights
+        sep = separate
+
+    mid = makeMidiTracks(mid, eventsDict, skip, combined, sep)
 
     mid.save(filename=f'{output}_merged.mid')
 
@@ -355,4 +356,9 @@ if __name__ == "__main__":
     except:
         mid = defaultMidi()
     output = os.path.splitext(sys.argv[1])[0]
-    main(anim, mid, output)
+    if 'separate' in sys.argv:
+        oneVenue = False
+    else:
+        oneVenue = True
+
+    main(anim, mid, output, oneVenue)
