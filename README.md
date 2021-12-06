@@ -50,6 +50,8 @@ If a MIDI file is not present, it uses a default MIDI file with a BPM of 120bpm.
 
 The name of the output will be a MIDI file and use the name and folder location of your first argument with "merged" added to it.
 
+Optional: add "separate" to your arguments to get separated venue tracks (lights, camera cuts and post procs)
+
 ## RBsong2Midi
 
 Dependencies: mido
@@ -57,4 +59,6 @@ Dependencies: mido
 Similar to Milo2Midi, but this works with RB4's rbsong file. Takes in an rbsong file as an argument, and outputs a MIDI file with the venue events from the rbsong file.
 
 MIDI file with the same name as the rbsong is **required** for this script to work.
+
+Optional: add "separate" to your arguments to get separated venue tracks (lights, camera cuts and post procs)
 
