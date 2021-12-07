@@ -234,6 +234,8 @@ def parseData(eventsDict, mid, oneVenue):
                 else:
                     if tracks == 'lightpreset':
                         textEvent = f'[lighting ({x.event})]'
+                    elif tracks == 'postproc':
+                        textEvent = f'[{x.event}.pp]'
                     else:
                         textEvent = f'[{x.event}]'
                     tempTrack.append(MetaMessage('text', text=textEvent, time=timeVal))
