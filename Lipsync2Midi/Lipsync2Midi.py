@@ -274,16 +274,32 @@ def defaultMidi():
     track.append(MetaMessage('time_signature', numerator=4, denominator=4, time=0))
     return mid
 
+def readFourBytes(anim, start):
+    x = []
+    for y in range(4):  # Iterate through the 4 bytes that make up the starting number
+        x.append(anim[start])
+        start += 1
+    xBytes = bytearray(x)
+    x = int.from_bytes(xBytes, "big")
+    return x, xBytes, start
+
+def getStart(lipsync):
+    DTAImport, DTAbytes, start = readFourBytes(lipsync, 8)
+    return DTAImport
+
 
 def main(lipsyncs, mid):
-    RB2 = RBlipData(2)
+    RB = RBlipData(2)
+
 
     for b, a in enumerate(lipsyncs):
 
         with open(a, "rb") as f:
             s = f.read()
 
-        lipsyncData, visemes = getLipData(s, 17, RB2)
+        startPos = getStart(s) + 17
+
+        lipsyncData, visemes = getLipData(s, startPos, RB)
 
         visemeFrame = []
 
@@ -326,7 +342,10 @@ def main(lipsyncs, mid):
                     if j != prevFrame[i]:
                         # if y < 5:
                         # print(j)
-                        textEvent = f'[{visemes[i]} {j} hold]'
+                        if startPos != 17:
+                            textEvent = f'[{visemes[i]} {j} hold]'.lower()
+                        else:
+                            textEvent = f'[{visemes[i]} {j} hold]'
                         mid.tracks[-1].append(MetaMessage('text', text=textEvent, time=timeVal))
                         timeVal = 0
 

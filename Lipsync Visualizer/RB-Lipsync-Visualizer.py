@@ -159,19 +159,34 @@ def genRB2LipData(header, vData):
     tempArray.extend(header.propAnim)
     return tempArray
 
+def readFourBytes(anim, start):
+    x = []
+    for y in range(4):  # Iterate through the 4 bytes that make up the starting number
+        x.append(anim[start])
+        start += 1
+    xBytes = bytearray(x)
+    x = int.from_bytes(xBytes, "big")
+    return x, xBytes, start
+
+def getStart(lipsync):
+    DTAImport, DTAbytes, start = readFourBytes(lipsync, 8)
+    return DTAImport
+
 
 def main(filename):
 
     with open(filename, "rb") as f:
         s = f.read()
 
-    RB2 = RBlipData(2)
+    RB = RBlipData(2)
 
-    lipsyncData, visemes = getLipData(s, 17, RB2)
+    startPos = getStart(s)+17
+
+    lipsyncData, visemes = getLipData(s, startPos, RB)
 
     for x in range(0, len(visemes)):  # Lower every 2nd x-axis label
-        if x % 2 == 1:
-            visemes[x] = "\n" + visemes[x]
+        if x % 4 != 0:
+            visemes[x] = "\n"*(x % 4) + visemes[x]
 
     visemeFrame = []
 
@@ -201,10 +216,12 @@ def main(filename):
     ax.set_ylim((0, 255))
     y = len(visemeState)
     progress = progressBar('Generating Images', max=y)
+    colours = ["#800000", "#000099"]
 
     for x, item in enumerate(visemeState):
-        pc = ax.bar(visemes, item, color=["#800000",
-                                          "#000099"])  # Each image seems to get a different colour if undefined, so I'm defining an alternating pattern for each image.
+        pc = ax.bar(visemes, item, color=colours)  # Each image seems to get a different colour if undefined, so I'm defining an alternating pattern for each image.
+        for y, ticklabel in enumerate(plt.gca().get_xticklabels()):
+            ticklabel.set_color(colours[y % 2])
         fig.savefig('output/{0}.png'.format(x))
         pc.remove()
         progress.next()

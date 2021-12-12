@@ -71,6 +71,19 @@ animParts = {
     'world_event': b'world_event'
 }
 
+"""p9AnimParts = { #Preparing for TBRB
+    'shot': b'\x04shot',
+    'postproc': b'postproc_interp',
+    'dream_outfit': b'dream_outfit',
+    'scenetrigger': b'scenetrigger',
+    'body_paul': b'body_paul',
+    'body_john': b'body_john',
+    'body_george': b'body_george',
+    'body_ringo': b'body_ringo',
+
+
+}"""
+
 playerAnim = ['bass_intensity', 'guitar_intensity', 'drum_intensity', 'mic_intensity', 'keyboard_intensity']
 
 lights = ['lights', 'keyframe', 'world_event', 'spot_guitar', 'spot_bass', 'spot_drums', 'spot_keyboard', 'spot_vocal',
