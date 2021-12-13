@@ -52,6 +52,8 @@ The name of the output will be a MIDI file and use the name and folder location 
 
 Optional: add "separate" to your arguments to get separated venue tracks (lights, camera cuts and post procs)
 
+**This does not yet work with with song .anim files from TBRB**
+
 ## RBsong2Midi
 
 Dependencies: mido
