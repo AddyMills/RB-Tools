@@ -38,7 +38,7 @@ Link to Onyx: https://github.com/mtolly/onyxite-customs
 
 Dependencies: mido, numpy
 
-Takes a song's anim file (found in the milo of a song) and converts all data to a MIDI track. Think of this as a reverse Milo Mod too.
+Takes a song's anim file (found in the milo of a song) and converts all data to a MIDI track. Think of this as a reverse Milo Mod tool.
 
 For now, you must extract the anim file yourself from a song's milo file (Onyx can do this).
 
