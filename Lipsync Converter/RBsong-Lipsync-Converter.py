@@ -75,6 +75,7 @@ class lipsyncData:
         self.visemeTotal = 0
         self.visemeOrder = []
 
+
 def lipsyncParts(rbsong): # Figure out starting points for lipsync parts (if present)
     lip1_start = -1
     lip2_start = -1
