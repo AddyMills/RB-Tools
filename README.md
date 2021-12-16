@@ -38,7 +38,7 @@ Link to Onyx: https://github.com/mtolly/onyxite-customs
 
 Dependencies: mido, numpy
 
-Takes a song's anim file (found in the milo of a song) and converts all data to a MIDI track. Think of this as a reverse Milo Mod too.
+Takes a song's anim file (found in the milo of a song) and converts all data to a MIDI track. Think of this as a reverse Milo Mod tool.
 
 For now, you must extract the anim file yourself from a song's milo file (Onyx can do this).
 
@@ -51,6 +51,8 @@ If a MIDI file is not present, it uses a default MIDI file with a BPM of 120bpm.
 The name of the output will be a MIDI file and use the name and folder location of your first argument with "merged" added to it.
 
 Optional: add "separate" to your arguments to get separated venue tracks (lights, camera cuts and post procs)
+
+**This does not yet work with with song .anim files from TBRB**
 
 ## RBsong2Midi
 
