@@ -64,3 +64,6 @@ MIDI file with the same name as the rbsong is **required** for this script to wo
 
 Optional: add "separate" to your arguments to get separated venue tracks (lights, camera cuts and post procs)
 
+## Acknowledgements
+
+No code outside of my own was used. However, I would like to extend special thanks to Maxton and Cisco for having 010 templates available to figure these scripts out
