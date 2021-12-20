@@ -56,6 +56,37 @@ animParts = {
     'world_event': b'world_event'
 }
 
+legalProcs = ("[bloom.pp]",
+              "[bright.pp]",
+              "[clean_trails.pp]",
+              "[contrast_a.pp]",
+              "[desat_blue.pp]",
+              "[desat_posterize_trails.pp]",
+              "[film_16mm.pp]",
+              "[film_b+w.pp]",
+              "[film_blue_filter.pp]",
+              "[film_contrast.pp]",
+              "[film_contrast_blue.pp]",
+              "[film_contrast_green.pp]",
+              "[film_contrast_red.pp]",
+              "[film_sepia_ink.pp]",
+              "[film_silvertone.pp]",
+              "[flicker_trails.pp]",
+              "[horror_movie_special.pp]",
+              "[photo_negative.pp]",
+              "[photocopy.pp]",
+              "[posterize.pp]",
+              "[ProFilm_a.pp]",
+              "[ProFilm_b.pp]",
+              "[ProFilm_mirror_a.pp]",
+              "[ProFilm_psychedelic_blue_red.pp]",
+              "[sucky_tv.pp]",
+              "[space_woosh.pp]",
+              "[video_a.pp]",
+              "[video_bw.pp]",
+              "[video_security.pp]",
+              "[video_trails.pp]")
+
 playerAnim = ['bass_intensity',
               'guitar_intensity',
               'drum_intensity',
@@ -85,8 +116,9 @@ rest = ['shot_5',  # Potentially for the future
         'shot_gk',
         ]
 
-oneVenueTrack = ['lightpreset', 'lightpreset_keyframe', 'world_event', 'spot_guitar', 'spot_bass', 'spot_drums', 'spot_keyboard',
-            'spot_vocal', 'part2_sing', 'part3_sing', 'part4_sing', 'postproc', 'shot_bg']
+oneVenueTrack = ['lightpreset', 'lightpreset_keyframe', 'world_event', 'spot_guitar', 'spot_bass', 'spot_drums',
+                 'spot_keyboard',
+                 'spot_vocal', 'part2_sing', 'part3_sing', 'part4_sing', 'postproc', 'shot_bg']
 
 oneVenueSep = ['crowd', 'stagekit_fog']
 
@@ -110,6 +142,7 @@ def readFourBytes(anim, start):
     x = int.from_bytes(xBytes, console.endian)
     return x, xBytes, start
 
+
 def readSixteenBytes(anim, start):
     x = []
     for y in range(16):  # Iterate through the 16 bytes to determine rbsong type
@@ -130,6 +163,7 @@ def defaultMidi():
     track.append(MetaMessage('time_signature', numerator=4, denominator=4, time=0))
     return mid
 
+
 def pullEventName(anim, start):
     eventname_loc = b'RBVenueAuthoring'
     eventstart = anim.find(eventname_loc, start) + len(eventname_loc) + 12
@@ -140,7 +174,7 @@ def pullEventName(anim, start):
         animName.append(chr(anim[eventstart]))
         eventstart += 1
     animName = ''.join(animName)
-    #exit()
+    # exit()
     return animName
 
 
@@ -183,7 +217,7 @@ def pullData(anim, start, beat):
             except:
                 continue
 
-    #print(animName)
+    # print(animName)
     return eventsList, animName, start
 
 
@@ -248,14 +282,18 @@ def parseData(eventsDict, mid, oneVenue):
                             textEvent = f'[lighting ({x.event})]'
                         elif tracks == 'postproc':
                             textEvent = f'[{x.event}.pp]'
+                            if textEvent not in legalProcs:
+                                textEvent = '[ProFilm_a.pp]'
                         else:
                             textEvent = x.event
                             if textEvent.startswith('band'):
                                 textEvent = f'coop{textEvent[4:]}'
                             if textEvent.endswith('crowd') and not textEvent.startswith('directed'):
-                                textEvent = textEvent[:-5]+'behind'
+                                textEvent = textEvent[:-5] + 'behind'
                             if textEvent.endswith('near_head'):
-                                textEvent = textEvent[:-9]+'closeup'
+                                textEvent = textEvent[:-9] + 'closeup_head'
+                            if textEvent.endswith('near_hand'):
+                                textEvent = textEvent[:-9] + 'closeup_hand'
                             textEvent = f'[{textEvent}]'
                         tempTrack.append(MetaMessage('text', text=textEvent, time=timeVal))
                     timeStart = x.time
@@ -305,11 +343,11 @@ def main(anim, mid, output, oneVenue):
     beat = grabBeatTrack(mid)
     start = 0
     eventTotal = anim.count(b'driven_prop')
-    #print(eventTotal)
+    # print(eventTotal)
     eventsDict = {}
     for x in range(eventTotal):
         events, eventsName, start = pullData(anim, start, beat)
-        #print(eventsName)
+        # print(eventsName)
         eventsDict[eventsName] = events
     mid = parseData(eventsDict, mid, oneVenue)
     mid.save(filename=f'{output}_venue.mid')
