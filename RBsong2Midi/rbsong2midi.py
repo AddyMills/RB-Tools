@@ -252,8 +252,10 @@ def parseData(eventsDict, mid, oneVenue):
                             textEvent = x.event
                             if textEvent.startswith('band'):
                                 textEvent = f'coop{textEvent[4:]}'
-                            if textEvent.endswith('crowd'):
+                            if textEvent.endswith('crowd') and not textEvent.startswith('directed'):
                                 textEvent = textEvent[:-5]+'behind'
+                            if textEvent.endswith('near_head'):
+                                textEvent = textEvent[:-9]+'closeup'
                             textEvent = f'[{textEvent}]'
                         tempTrack.append(MetaMessage('text', text=textEvent, time=timeVal))
                     timeStart = x.time
