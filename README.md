@@ -62,8 +62,8 @@ Similar to Milo2Midi, but this works with RB4's rbsong file. Takes in an rbsong 
 
 MIDI file with the same name as the rbsong is **required** for this script to work.
 
-Optional: add "separate" to your arguments to get separated venue tracks (lights, camera cuts and post procs)
+Optional: add "separate" to your arguments to get separated venue tracks (lights, camera cuts, and post procs)
 
 ## Acknowledgements
 
-No code outside of my own was used. However, I would like to extend special thanks to Maxton and Cisco for having 010 templates available to figure these scripts out
+No code outside of my own was used. However, I would like to extend special thanks to Maxton and PikminGuts92 for having 010 templates available to figure these scripts out

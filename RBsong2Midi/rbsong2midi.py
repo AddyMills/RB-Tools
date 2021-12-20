@@ -90,6 +90,8 @@ oneVenueTrack = ['lightpreset', 'lightpreset_keyframe', 'world_event', 'spot_gui
 
 oneVenueSep = ['crowd', 'stagekit_fog']
 
+dataToPull = oneVenueTrack + oneVenueSep
+
 ppDic = {
     'profilm_a': 'ProFilm_a',
     'profilm_b': 'ProFilm_b',
@@ -128,10 +130,26 @@ def defaultMidi():
     track.append(MetaMessage('time_signature', numerator=4, denominator=4, time=0))
     return mid
 
+def pullEventName(anim, start):
+    eventname_loc = b'RBVenueAuthoring'
+    eventstart = anim.find(eventname_loc, start) + len(eventname_loc) + 12
+    animNameLen, animNameLenByte, eventstart = readFourBytes(anim, eventstart)
+
+    animName = []
+    for y in range(animNameLen):
+        animName.append(chr(anim[eventstart]))
+        eventstart += 1
+    animName = ''.join(animName)
+    #exit()
+    return animName
+
 
 def pullData(anim, start, beat):
     start_loc = b'driven_prop'
     start = anim.find(start_loc, start) + len(start_loc) + 4
+    animName = pullEventName(anim, start)
+    if animName not in dataToPull:
+        return -1, -1, start
     events, eventsByte, start = readFourBytes(anim, start)
     if readSixteenBytes(anim, start):
         start += 43
@@ -164,14 +182,7 @@ def pullData(anim, start, beat):
                 eventsList.append(venueItem(timeInSong, event))
             except:
                 continue
-    start_loc = b'RBVenueAuthoring'
-    start = anim.find(start_loc, start) + len(start_loc) + 12
-    animNameLen, animNameLenByte, start = readFourBytes(anim, start)
-    animName = []
-    for y in range(animNameLen):
-        animName.append(chr(anim[start]))
-        start += 1
-    animName = ''.join(animName)
+
     #print(animName)
     return eventsList, animName, start
 
@@ -185,85 +196,92 @@ def parseData(eventsDict, mid, oneVenue):
         sep = separate
     toMerge = []
     for tracks in combined:
-        if eventsDict[tracks] != -1:
-            timeStart = 0
-            tempTrack = MidiTrack()
-            prevType = 'note_off'
-            for y, x in enumerate(eventsDict[tracks]):
-                timeVal = x.time - timeStart
-                noteVal = 0
-                if tracks.endswith('_sing') or tracks.startswith('spot_'):
-                    if tracks.endswith('_sing'):
-                        if tracks.startswith('part2'):
-                            noteVal = 87
-                        elif tracks.startswith('part3'):
-                            noteVal = 85
-                        elif tracks.startswith('part4'):
-                            noteVal = 86
-                        else:
-                            print(f"Unknown singalong event found at {x.time}")
-                            exit()
-                    if tracks.startswith('spot_'):
-                        if tracks.endswith('keyboard'):
-                            noteVal = 41
-                        elif tracks.endswith('vocal'):
-                            noteVal = 40
-                        elif tracks.endswith('guitar'):
-                            noteVal = 39
-                        elif tracks.endswith('drums'):
-                            noteVal = 38
-                        elif tracks.endswith('bass'):
-                            noteVal = 37
-                        else:
-                            print(f"Unknown spotlight event found at {x.time}")
-                            exit()
-                    if x.event.endswith('on'):
-                        if prevType == 'note_on':
+        if tracks in eventsDict:
+            if eventsDict[tracks] != -1:
+                timeStart = 0
+                tempTrack = MidiTrack()
+                prevType = 'note_off'
+                for y, x in enumerate(eventsDict[tracks]):
+                    timeVal = x.time - timeStart
+                    noteVal = 0
+                    if tracks.endswith('_sing') or tracks.startswith('spot_'):
+                        if tracks.endswith('_sing'):
+                            if tracks.startswith('part2'):
+                                noteVal = 87
+                            elif tracks.startswith('part3'):
+                                noteVal = 85
+                            elif tracks.startswith('part4'):
+                                noteVal = 86
+                            else:
+                                print(f"Unknown singalong event found at {x.time}")
+                                exit()
+                        if tracks.startswith('spot_'):
+                            if tracks.endswith('keyboard'):
+                                noteVal = 41
+                            elif tracks.endswith('vocal'):
+                                noteVal = 40
+                            elif tracks.endswith('guitar'):
+                                noteVal = 39
+                            elif tracks.endswith('drums'):
+                                noteVal = 38
+                            elif tracks.endswith('bass'):
+                                noteVal = 37
+                            else:
+                                print(f"Unknown spotlight event found at {x.time}")
+                                exit()
+                        if x.event.endswith('on'):
+                            if prevType == 'note_on':
+                                tempTrack.append(Message('note_off', note=noteVal, velocity=0, time=timeVal))
+                                timeStart = x.time
+                                tempTrack.append(Message('note_on', note=noteVal, velocity=100, time=0))
+                            else:
+                                tempTrack.append(Message('note_on', note=noteVal, velocity=100, time=timeVal))
+                            prevType = 'note_on'
+                        elif x.event.endswith('off'):
                             tempTrack.append(Message('note_off', note=noteVal, velocity=0, time=timeVal))
-                            timeStart = x.time
-                            tempTrack.append(Message('note_on', note=noteVal, velocity=100, time=0))
+                            prevType = 'note_off'
                         else:
-                            tempTrack.append(Message('note_on', note=noteVal, velocity=100, time=timeVal))
-                        prevType = 'note_on'
-                    elif x.event.endswith('off'):
-                        tempTrack.append(Message('note_off', note=noteVal, velocity=0, time=timeVal))
-                        prevType = 'note_off'
+                            print(f"Unknown state event found at {x.time}")
+                            exit()
                     else:
-                        print(f"Unknown state event found at {x.time}")
-                        exit()
-                else:
-                    if tracks == 'lightpreset':
-                        textEvent = f'[lighting ({x.event})]'
-                    elif tracks == 'postproc':
-                        textEvent = f'[{x.event}.pp]'
-                    else:
-                        textEvent = f'[{x.event}]'
-                    tempTrack.append(MetaMessage('text', text=textEvent, time=timeVal))
-                timeStart = x.time
-            toMerge.append(tempTrack)
+                        if tracks == 'lightpreset':
+                            textEvent = f'[lighting ({x.event})]'
+                        elif tracks == 'postproc':
+                            textEvent = f'[{x.event}.pp]'
+                        else:
+                            textEvent = x.event
+                            if textEvent.startswith('band'):
+                                textEvent = f'coop{textEvent[4:]}'
+                            if textEvent.endswith('crowd'):
+                                textEvent = textEvent[:-5]+'behind'
+                            textEvent = f'[{textEvent}]'
+                        tempTrack.append(MetaMessage('text', text=textEvent, time=timeVal))
+                    timeStart = x.time
+                toMerge.append(tempTrack)
     mid.tracks.append(merge_tracks(toMerge))
     if combined == oneVenueTrack:
         mid.tracks[-1].name = "VENUE"
     else:
         mid.tracks[-1].name = "lights"
     for tracks in sep:
-        if eventsDict[tracks] != -1:
-            tname = tracks
-            mid.add_track(name=tname)
-            timeStart = 0
-            for y, x in enumerate(eventsDict[tracks]):
-                """mapLower = beat[beat <= x.time].max()
-                if tracks == 'shot_bg':
-                    print(mapLower, x.time)"""
-                timeVal = x.time - timeStart
-                if tracks == 'stagekit_fog':
-                    textEvent = f'[Fog{x.event.capitalize()}]'
-                elif tracks == 'postproc':
-                    textEvent = f'[{x.event}.pp]'
-                else:
-                    textEvent = f'[{x.event}]'
-                mid.tracks[-1].append(MetaMessage('text', text=textEvent, time=timeVal))
-                timeStart = x.time
+        if tracks in eventsDict:
+            if eventsDict[tracks] != -1:
+                tname = tracks
+                mid.add_track(name=tname)
+                timeStart = 0
+                for y, x in enumerate(eventsDict[tracks]):
+                    """mapLower = beat[beat <= x.time].max()
+                    if tracks == 'shot_bg':
+                        print(mapLower, x.time)"""
+                    timeVal = x.time - timeStart
+                    if tracks == 'stagekit_fog':
+                        textEvent = f'[Fog{x.event.capitalize()}]'
+                    elif tracks == 'postproc':
+                        textEvent = f'[{x.event}.pp]'
+                    else:
+                        textEvent = f'[{x.event}]'
+                    mid.tracks[-1].append(MetaMessage('text', text=textEvent, time=timeVal))
+                    timeStart = x.time
     return mid
 
 
