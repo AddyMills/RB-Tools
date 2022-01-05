@@ -291,9 +291,15 @@ def parseData(eventsDict, mid, oneVenue):
                             if textEvent.endswith('crowd') and not textEvent.startswith('directed'):
                                 textEvent = textEvent[:-5] + 'behind'
                             if textEvent.endswith('near_head'):
-                                textEvent = textEvent[:-9] + 'closeup_head'
+                                if textEvent[:7] == 'coop_v_':
+                                    textEvent = textEvent[:-9] + 'closeup'
+                                else:
+                                    textEvent = textEvent[:-9] + 'closeup_head'
                             if textEvent.endswith('near_hand'):
-                                textEvent = textEvent[:-9] + 'closeup_hand'
+                                if textEvent[:7] == 'coop_v_':
+                                    textEvent = textEvent[:-9] + 'closeup'
+                                else:
+                                    textEvent = textEvent[:-9] + 'closeup_hand'
                             textEvent = f'[{textEvent}]'
                         tempTrack.append(MetaMessage('text', text=textEvent, time=timeVal))
                     timeStart = x.time
