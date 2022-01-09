@@ -64,6 +64,18 @@ MIDI file with the same name as the rbsong is **required** for this script to wo
 
 Optional: add "separate" to your arguments to get separated venue tracks (lights, camera cuts, and post procs)
 
+## Voc2Lipsync
+
+Dependencies: mido
+
+Converts a voc lipsync file from GH2 and (potentially) KR to the lipsync format used by RB2 and above. This only converts the mouth movements and blink events. Using the Audrey script to add some eyebrow movements could make these lipsync files really pop.
+
+Usage: Run the script with a voc file as its variable. Optionally, you can have a third argument to exaggerate the mouth movements. Enter this number as a decimal up to 1.5 (150%).
+
+Example in Windows command line: Voc2lipsync.py freebird.voc 1.2
+
+This will convert the Free Bird voc file to RB2 lipsync while exaggerating the animations by 20%.
+
 ## Acknowledgements
 
 No code outside of my own was used. However, I would like to extend special thanks to Maxton and PikminGuts92 for having 010 templates available to figure these scripts out
