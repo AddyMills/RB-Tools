@@ -13,7 +13,8 @@ charTypes = {
 singalongNames = ("Bass_singalong",
                   "Drum_singalong",
                   "Guitar_singalong",
-                  "Singalong")
+                  "Singalong",
+                  "singalong")
 
 
 
@@ -219,7 +220,7 @@ def main(lipsync):
     #print(testLipsync)
     #print(lipSingalongs)
     for y, x in enumerate(lipParts):
-        with open(f"Part_{x}.lipsync", "wb") as g:
+        with open(f"{y}-Part_{x}.lipsync", "wb") as g:
             g.write(lipsyncVals[y])
 
     # print(lipsyncVals)
