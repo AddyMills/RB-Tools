@@ -133,31 +133,6 @@ def midiProcessing(mid):
         y.seconds = t2s(y.time, tpb, y.avgTempo)
     return tempoMap  # tickList
 
-
-def lipsyncParts(rbsong):  # Figure out starting points for lipsync parts (if present)
-    lip1_start = -1
-    lip2_start = -1
-    lip3_start = -1
-    lip4_start = -1
-    if rbsong.find(b'RBCharLipSync') == -1:
-        print("No lipsync found. Continuing...")
-    else:
-        lip1_start = rbsong.find(b'frames', rbsong.find(b'RBCharLipSync')) + 10
-        if rbsong.find(b'part2_', lip1_start) == rbsong.find(b'part2', lip1_start):
-            print("No part 2 lipsync found. Continuing...")
-        else:
-            lip2_start = rbsong.find(b'frames', lip1_start) + 10
-        if rbsong.find(b'part3_', lip1_start) == rbsong.find(b'part3', lip1_start):
-            print("No part 3 lipsync found. Continuing...")
-        else:
-            lip3_start = rbsong.find(b'frames', lip2_start) + 10
-        if rbsong.find(b'part4_', lip1_start) == rbsong.find(b'part4', lip1_start):
-            print("No part 4 lipsync found. Continuing...")
-        else:
-            lip4_start = rbsong.find(b'frames', lip3_start) + 10
-    return [lip1_start, lip2_start, lip3_start, lip4_start]
-
-
 def getLipData(rbsong, lipstart, lipdata):
     visemeCount = []
     for x in range(0, lipdata.visemeCount):
@@ -286,11 +261,10 @@ def readFourBytes(anim, start):
 def getStart(lipsync):
     DTAImport, DTAbytes, start = readFourBytes(lipsync, 8)
     return DTAImport
-
+    
 
 def main(lipsyncs, mid):
     RB = RBlipData(2)
-
 
     for b, a in enumerate(lipsyncs):
 
@@ -353,6 +327,76 @@ def main(lipsyncs, mid):
                 timeStart += timeAdd
 
     mid.save(filename=f'{os.path.splitext(lipsyncs[0])[0]}_lipsync.mid')
+    
+
+def mainSplit(lipsyncs, mid):
+    RB = RBlipData(2)
+
+
+    for b, a in enumerate(lipsyncs):
+
+        with open(a, "rb") as f:
+            s = f.read()
+
+        startPos = getStart(s) + 17
+
+        lipsyncData, visemes = getLipData(s, startPos, RB)
+
+        visemeFrame = []
+
+        for x in range(0, len(visemes)):
+            visemeFrame.append(0)
+
+        visemeState = []
+        for x, lips in enumerate(lipsyncData):
+            if lips == 0:
+                pass
+            else:
+                visemeEdit = -1
+                for y in range(0, lips[0] * 2):
+                    if y % 2 == 0:
+                        visemeEdit = lips[1][y]
+                    else:
+                        visemeFrame[visemeEdit] = lips[1][y]
+            visemeState.append(visemeFrame.copy())
+        songMap = midiProcessing(mid)
+        songTime, songSeconds, songTempo, songAvgTempo = songArray(songMap)
+        secondsArray = np.array(songSeconds)
+        
+        
+        # print(len(visemeState), visemes)
+        # exit()
+        for i, j in enumerate(visemes):
+            timeStart = 0
+            mid.add_track(name=f'part{b + 1}-{j}')
+            # print(j)
+            prevFrame = 0
+            for y, x in enumerate(visemeState):
+                # print(x[i])
+                # exit()
+                secs = y * (1 / 30)
+                mapLower = secondsArray[secondsArray <= secs].max()
+                arrIndex = songSeconds.index(mapLower)
+                timeFromChange = secs - songSeconds[arrIndex]
+                ticksFromChange = s2t(timeFromChange, tpb, songTempo[arrIndex])
+                timeVal = songTime[arrIndex] + round(ticksFromChange) - timeStart
+                timeAdd = songTime[arrIndex] + round(ticksFromChange) - timeStart
+
+                # print(secs, mapLower, arrIndex, timeFromChange, ticksFromChange, timeVal, timeAdd)
+                #if timeVal < 0:
+                    #print(secs, timeVal)
+                if prevFrame != x[i]:
+                    if startPos != 17:
+                        textEvent = f'[{visemes[i]} {x[i]} hold]'.lower()
+                    else:
+                        textEvent = f'[{visemes[i]} {x[i]} hold]'
+                    mid.tracks[-1].append(MetaMessage('text', text=textEvent, time=timeVal))
+                    timeVal = 0
+
+                    prevFrame = x[i]
+                    timeStart += timeAdd
+
+    mid.save(filename=f'{os.path.splitext(lipsyncs[0])[0]}_lipsync-split.mid')
 
 
 if __name__ == '__main__':
@@ -363,7 +407,7 @@ if __name__ == '__main__':
     filename = sys.argv[1]
 
     if os.path.splitext(filename)[1] != ".lipsync":
-        print("Invalid file found. Please use an \".lipsync\" file as an argument when running the script.")
+        print("Invalid file found. Please use an \".lipsync\" file as the first argument when running the script.")
         exit()
     dirname = os.path.dirname(os.path.abspath(filename))
     mid = ""
@@ -375,5 +419,7 @@ if __name__ == '__main__':
             mid = MidiFile(file)
     if mid == "":
         mid = defaultMidi()
-
-    main(lipsyncs, mid)
+    if "-split" in sys.argv:
+        mainSplit(lipsyncs, mid)
+    else:
+        main(lipsyncs, mid)

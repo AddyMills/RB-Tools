@@ -28,9 +28,11 @@ Dependencies: mido, numpy
 
 Takes a lipsync file and inserts all viseme events into a MIDI file that is compatible with Onyx's *Lipsync* tab found in Other Tools. Useful for viewing official viseme data, or splicing MIDI tracks together and have Onyx make a combined lipsync for you.
 
-Usage: Run the script with a lipsync file as its variable. The program will look for all lipsync files in the folder and outputs a 120bpm MIDI that has the visemes synced to the song.
+Usage: Run the script with a lipsync file as its variable. The program will look for all lipsync files in the folder and outputs a 120bpm MIDI that has the visemes synced to the song. Add "-split" (no quotes) to the script arguments to split each viseme from each lipsync file to a separate track within the MIDI.
 
 Optionally, if you have a MIDI file in the same folder as the lipsync files, it will add the LIPSYNC# tracks to that MIDI. If you use this functionality, make sure to only have one MIDI file in the folder. Multiple MIDI files will result in duplicate tracks for some reason I haven't been able to debug. But only having one will not cause duplicates.
+
+Example: Lipsync2Midi.py song.lipsync -split
 
 Link to Onyx: https://github.com/mtolly/onyxite-customs
 
@@ -72,7 +74,7 @@ Converts a voc lipsync file from GH2 and (potentially) KR to the lipsync format 
 
 Usage: Run the script with a voc file as its variable. Optionally, you can have a third argument to exaggerate the mouth movements. Enter this number as a decimal up to 1.5 (150%).
 
-Example in Windows command line: Voc2lipsync.py freebird.voc 1.2
+Example: Voc2lipsync.py freebird.voc 1.2
 
 This will convert the Free Bird voc file to RB2 lipsync while exaggerating the animations by 20%.
 
