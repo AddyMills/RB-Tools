@@ -3,118 +3,70 @@ import sys
 import struct
 import itertools
 
-from mido import MetaMessage, MidiFile, MidiTrack
-from mido import merge_tracks
-from mido import second2tick as s2t
-
-charTypes = {
-    "8bit": 1,
-    "16bit": 2,
-    "24bit": 3,
-    "32bit": 4,
-    "64bit": 8
-}
+import common.classes as cls
+import common.functions as fns
+import common.dicts as dicts
 
 possVisemes = (
 "Neutral", "Eat", "Earth", "If", "Ox", "Oat", "Wet", "Size", "Church", "Fave", "Though", "Told", "Bump", "New", "Roar",
 "Cage", "Blink")
 
-
-class RB2lipsyncHeader:
-    def __init__(self):
-        self.version = bytearray([0, 0, 0, 0x01])
-        self.revision = bytearray([0, 0, 0, 0x02])
-        self.dtaImport = bytearray([0, 0, 0, 0])
-        self.embedDTB = bytearray([0, 0, 0, 0])
-        self.unknown1 = bytearray([0])
-        self.propAnim = bytearray([0, 0, 0, 0])
-
-
 class GHlipData:
     def __init__(self):
         self.endian = "little"
         self.opEndian = "big"
-        self.visemeCount = charTypes["32bit"]  # Bit value for number of visemes
-        self.visemeItem = charTypes["32bit"]  # Bit value for viseme entries
+        self.visemeCount = dicts.charTypes["32bit"]  # Bit value for number of visemes
+        self.visemeItem = dicts.charTypes["32bit"]  # Bit value for viseme entries
 
-tpb = 480
+
 GH2 = GHlipData()
 framerate = 30
 
-def defaultMidi():
-    mid = MidiFile()
-    track = MidiTrack()
-    mid.tracks.append(track)
-    track.append(MetaMessage('set_tempo', tempo=500000, time=0))
-    track.append(MetaMessage('time_signature', numerator=4, denominator=4, time=0))
-    return mid
-
-def genRB2LipData(header, vData):
-    tempArray = bytearray()
-    tempArray.extend(header.version + header.revision + header.dtaImport + header.embedDTB + header.unknown1)
-    tempArray.extend(vData)
-    tempArray.extend(header.propAnim)
-    return tempArray
-
-def readFourBytes(anim, start, lipdata=GH2):
-    x = []
-    for y in range(4):  # Iterate through the 4 bytes that make up the starting number
-        x.append(anim[start])
-        start += 1
-    xBytes = bytearray(x)
-    return xBytes, start
-
-
-def toInt(x, lipdata=GH2):
-    x = int.from_bytes(x, lipdata.endian)
-    return x
-
-
 def vocHeader(voc, start):
-    devNameLen, start = readFourBytes(voc, start)
+    dummy, devNameLen, start = fns.readFourBytes(voc, start, GH2)
     devName = []
-    for x in range(toInt(devNameLen)):
+    for x in range(fns.toInt(devNameLen, GH2)):
         devName.append(chr(voc[start]))
         start += 1
     devName = ''.join(devName)
     start += 2
-    gamemetaLen, start = readFourBytes(voc, start)
+    dummy, gamemetaLen, start = fns.readFourBytes(voc, start, GH2)
     gamemeta = []
-    for x in range(toInt(gamemetaLen)):
+    for x in range(fns.toInt(gamemetaLen, GH2)):
         gamemeta.append(chr(voc[start]))
         start += 1
     gamemeta = ''.join(gamemeta)
     start += 12
-    songnameLen, start = readFourBytes(voc, start)
+    dummy, songnameLen, start = fns.readFourBytes(voc, start, GH2)
     songname = []
-    for x in range(toInt(songnameLen)):
+    for x in range(fns.toInt(songnameLen, GH2)):
         songname.append(chr(voc[start]))
         start += 1
     songname = ''.join(songname)
     start += 2
-    fileSize, start = readFourBytes(voc, start)
+    dummy, fileSize, start = fns.readFourBytes(voc, start, GH2)
     start += 2
-    visemeCount, start = readFourBytes(voc, start)
-    return toInt(visemeCount), start
+    dummy, visemeCount, start = fns.readFourBytes(voc, start, GH2)
+    return fns.toInt(visemeCount, GH2), start
 
 
 def pullViseme(voc, start):
     start += 8  # Skip first 8 byte of viseme entry
-    visemeNameLen, start = readFourBytes(voc, start)
+    dummy, visemeNameLen, start = fns.readFourBytes(voc, start, GH2)
     visemeName = []
-    for x in range(toInt(visemeNameLen)):
+    for x in range(fns.toInt(visemeNameLen, GH2)):
         visemeName.append(chr(voc[start]))
         start += 1
     visemeName = ''.join(visemeName)
     start += 8
-    eventNum, start = readFourBytes(voc, start)
+    dummy, eventNum, start = fns.readFourBytes(voc, start, GH2)
     events = []
     maxValue = 0
-    for x in range(toInt(eventNum)):
+    for x in range(fns.toInt(eventNum, GH2)):
         start += 2
-        eventTime, start = readFourBytes(voc, start)
+        dummy, eventTime, start = fns.readFourBytes(voc, start, GH2)
         eventTime = struct.unpack('<f', eventTime)[0]
-        eventValue, start = readFourBytes(voc, start)
+        dummy, eventValue, start = fns.readFourBytes(voc, start, GH2)
         if round(struct.unpack('<f', eventValue)[0]) > maxValue:
             maxValue = round(struct.unpack('<f', eventValue)[0])
         eventValue = round(struct.unpack('<f', eventValue)[0] * 255)
@@ -153,10 +105,6 @@ def main(voc, exaggerate = 1):
                         z2_val = round(toConvert[x][z+1][1] * exaggerate)
                 except IndexError:
                     z2_val = 0
-                except:
-                    print("Error while parsing visemes.")
-                    traceback.print_exc()
-                    exit()
                 frameDiff = z2-z1
                 try:
                     valueDiff = (z2_val - z1_val)/frameDiff
@@ -215,7 +163,7 @@ def main(voc, exaggerate = 1):
     visemeHeader.extend(len(lipsyncData).to_bytes(4, byteorder='big', signed=False))
     #print(lipsyncVals)
     visemeHeader.extend(bytearray(lipsyncData))
-    lipsyncFile = genRB2LipData(RB2lipsyncHeader(), visemeHeader)
+    lipsyncFile = fns.genRB2LipData(cls.RB2lipsyncHeader(), visemeHeader)
     with open(f'{os.path.splitext(filename)[0]}.lipsync', "wb") as g:
         g.write(lipsyncFile)
     return
@@ -227,7 +175,7 @@ if __name__ == '__main__':
         exit()
 
     filename = sys.argv[1]
-    
+
     if len(sys.argv) == 3:
         try:
             if float(sys.argv[2]) >= 1.5:

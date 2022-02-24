@@ -1,137 +1,9 @@
 import os
 import sys
 
+import common.classes as cls
+import common.functions as fns
 import numpy as np
-from mido import MetaMessage, MidiFile, MidiTrack
-from mido import second2tick as s2t
-from mido import tick2second as t2s
-
-# from multiprocessing import Process
-
-# pool_size = 5
-
-charTypes = {
-    "8bit": 1,
-    "16bit": 2,
-    "24bit": 3,
-    "32bit": 4,
-    "64bit": 8
-}
-
-tpb = 480
-
-"""visemeNote = [50, 51, 52, 53, 54, 55, 56, 57, 58, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80,
-              81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 105, 106,
-              107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127,
-              128
-              ]
-visemeName = ["Default", "Blink", "Brow_up", "Brow_down", "Brow_aggressive", "Brow_dramatic", "Brow_pouty",
-              "Brow_openmouthed", "Squint", "Sad", "Rock_1", "Rock_2", "Rock_3", "Rock_4", "exp_rock_normal1",
-              "exp_rock_normal2", "exp_rock_normal3", "exp_rock_normal4", "exp_rock_normal5", "exp_rock_normal6",
-              "exp_rock_mellow1", "exp_rock_mellow2", "exp_rock_intense1", "exp_rock_intense2", "exp_rock_intense3",
-              "exp_rock_intense4", "exp_metal_mellow", "exp_metal_intense_first", "exp_metal_intense",
-              "accent_metal_sustain", "accent_metal_wince", "accent_twitch1", "accent_twitch2", "accent_twitch3",
-              "accent_twitch4", "accent_twitch5", "accent_twitch6", "accent_twitch7", "accent_twitch8",
-              "accent_twitch9", "accent_twitch10", "accent_side", "accent_forward", "accent_forward_snare",
-              "accent_forward_kick", "accent_groove_forward", "accent_groove_side_l", "accent_groove_side_r",
-              "accent_sustain", "exp_banger_slackjawed_01", "exp_banger_oohface_01", "exp_banger_teethgrit_01",
-              "exp_banger_roar_01", "exp_dramatic_happy_eyesopen_01", "exp_dramatic_happy_eyesclosed_01",
-              "exp_dramatic_pouty_01", "exp_dramatic_mouthopen_01", "exp_rocker_smile_mellow_01",
-              "exp_rocker_smile_intense_01", "exp_rocker_teethgrit_happy_01", "exp_rocker_teethgrit_pained_01",
-              "exp_rocker_bassface_cool_01", "exp_rocker_bassface_aggressive_01", "exp_rocker_soloface_01",
-              "exp_rocker_shout_eyesopen_01", "exp_rocker_shout_eyesclosed_01", "exp_rocker_shout_quick_01",
-              "exp_rocker_slackjawed_01", "exp_spazz_eyesclosed_01", "exp_spazz_snear_mellow_01",
-              "exp_spazz_snear_intense_01", "exp_spazz_tongueout_front_01", "exp_spazz_tongueout_side_01",
-              ]"""
-
-
-class RB2lipsyncHeader:
-    def __init__(self):
-        self.version = bytearray([0, 0, 0, 0x01])
-        self.revision = bytearray([0, 0, 0, 0x02])
-        self.dtaImport = bytearray([0, 0, 0, 0])
-        self.embedDTB = bytearray([0, 0, 0, 0])
-        self.unknown1 = bytearray([0])
-        self.propAnim = bytearray([0, 0, 0, 0])
-
-
-class RBlipData:
-    def __init__(self, RB):
-        if RB == 4:
-            self.endian = "little"
-        else:
-            self.endian = "big"
-        if self.endian == "little":
-            self.opEndian = "big"
-        else:
-            self.opEndian = "little"
-        self.visemeCount = charTypes["32bit"]  # Bit value for number of visemes
-        self.visemeItem = charTypes["32bit"]  # Bit value for viseme entries
-
-
-class tempoMapItem:
-    def __init__(self, time, tempo, avgTempo):
-        self.time = time
-        self.tempo = tempo
-        self.avgTempo = avgTempo  # Avg Tempo up to that point
-
-
-class lipsyncData:
-    def __init__(self):
-        self.visemeTotal = 0
-        self.visemeOrder = []
-
-
-def rollingAverage(x, y, z, a):  # x = prevTime, y = curTime, z = avgTempo, a = curTempo
-    newTempo = ((x / y) * z) + (a * (y - x) / y)
-    return newTempo
-
-
-def returnSeconds(avgTick, avgTempo, tick, tempo):
-    seconds = t2s(avgTick, tpb, avgTempo) + t2s(tick, tpb, tempo)
-    return seconds
-
-
-def tempMap(mid):
-    x = []  # Tempo changes
-    z = []  # Ticks of tempo changes
-    y = 0  # Event counter
-    totalTime = 0  # Cumulative total time
-    avgTempo = 0
-    for msg in mid.tracks[0]:
-        totalTime = totalTime + msg.time
-        if msg.type == "set_tempo":  # Just in case there are other events in the tempo map
-            if y == 0:
-                x.append(tempoMapItem(totalTime, msg.tempo, msg.tempo))
-                z.append(totalTime)
-                y = y + 1
-            elif y == 1:
-                avgTempo = x[y - 1].tempo
-                x.append(tempoMapItem(totalTime, msg.tempo, avgTempo))
-                z.append(totalTime)
-                y = y + 1
-            else:
-                avgTempo = rollingAverage(x[y - 1].time, totalTime, avgTempo, x[y - 1].tempo)
-                x.append(tempoMapItem(totalTime, msg.tempo, avgTempo))
-                z.append(totalTime)
-                y = y + 1
-
-    return x, z
-
-
-def midiProcessing(mid):
-    tempoMap, ticks = tempMap(mid)
-    endEvent = 0
-    for track in mid.tracks:
-        if track.name == "EVENTS":
-            for msg in track:
-                endEvent += msg.time
-                if msg.type == 'text':
-                    if msg.text == '[end]':
-                        break
-    for x, y in enumerate(tempoMap):
-        y.seconds = t2s(y.time, tpb, y.avgTempo)
-    return tempoMap  # tickList
 
 def getLipData(rbsong, lipstart, lipdata):
     visemeCount = []
@@ -219,59 +91,15 @@ def getLipData(rbsong, lipstart, lipdata):
 
     return frameDataNum, visemes
 
-
-def genRB2LipData(header, vData):
-    tempArray = bytearray()
-    tempArray.extend(header.version + header.revision + header.dtaImport + header.embedDTB + header.unknown1)
-    tempArray.extend(vData)
-    tempArray.extend(header.propAnim)
-    return tempArray
-
-
-def songArray(songMap):
-    songTime = []
-    songSeconds = []
-    songTempo = []
-    songAvgTempo = []
-    for x, y in enumerate(songMap):
-        songTime.append(y.time)
-        songSeconds.append(y.seconds)
-        songTempo.append(y.tempo)
-        songAvgTempo.append(y.avgTempo)
-    return songTime, songSeconds, songTempo, songAvgTempo
-
-
-def defaultMidi():
-    mid = MidiFile()
-    track = MidiTrack()
-    mid.tracks.append(track)
-    track.append(MetaMessage('set_tempo', tempo=500000, time=0))
-    track.append(MetaMessage('time_signature', numerator=4, denominator=4, time=0))
-    return mid
-
-def readFourBytes(anim, start):
-    x = []
-    for y in range(4):  # Iterate through the 4 bytes that make up the starting number
-        x.append(anim[start])
-        start += 1
-    xBytes = bytearray(x)
-    x = int.from_bytes(xBytes, "big")
-    return x, xBytes, start
-
-def getStart(lipsync):
-    DTAImport, DTAbytes, start = readFourBytes(lipsync, 8)
-    return DTAImport
-    
-
 def main(lipsyncs, mid):
-    RB = RBlipData(2)
+    RB = cls.RBlipData(2)
 
     for b, a in enumerate(lipsyncs):
 
         with open(a, "rb") as f:
             s = f.read()
 
-        startPos = getStart(s) + 17
+        startPos = fns.getStart(s) + 17
 
         lipsyncData, visemes = getLipData(s, startPos, RB)
 
@@ -293,8 +121,8 @@ def main(lipsyncs, mid):
                     else:
                         visemeFrame[visemeEdit] = lips[1][y]
             visemeState.append(visemeFrame.copy())
-        songMap = midiProcessing(mid)
-        songTime, songSeconds, songTempo, songAvgTempo = songArray(songMap)
+        songMap = fns.midiProcessing(mid)
+        songTime, songSeconds, songTempo, songAvgTempo = fns.songArray(songMap)
         secondsArray = np.array(songSeconds)
         mid.add_track(name=f'LIPSYNC{b + 1}')
         timeStart = 0
@@ -304,7 +132,7 @@ def main(lipsyncs, mid):
             mapLower = secondsArray[secondsArray <= secs].max()
             arrIndex = songSeconds.index(mapLower)
             timeFromChange = secs - songSeconds[arrIndex]
-            ticksFromChange = s2t(timeFromChange, tpb, songTempo[arrIndex])
+            ticksFromChange = fns.s2t(timeFromChange, fns.tpb, songTempo[arrIndex])
             timeVal = songTime[arrIndex] + round(ticksFromChange) - timeStart
             timeAdd = songTime[arrIndex] + round(ticksFromChange) - timeStart
 
@@ -320,7 +148,7 @@ def main(lipsyncs, mid):
                             textEvent = f'[{visemes[i]} {j} hold]'.lower()
                         else:
                             textEvent = f'[{visemes[i]} {j} hold]'
-                        mid.tracks[-1].append(MetaMessage('text', text=textEvent, time=timeVal))
+                        mid.tracks[-1].append(fns.MetaMessage('text', text=textEvent, time=timeVal))
                         timeVal = 0
 
                 prevFrame = x
@@ -330,15 +158,14 @@ def main(lipsyncs, mid):
     
 
 def mainSplit(lipsyncs, mid):
-    RB = RBlipData(2)
-
+    RB = cls.RBlipData(2)
 
     for b, a in enumerate(lipsyncs):
 
         with open(a, "rb") as f:
             s = f.read()
 
-        startPos = getStart(s) + 17
+        startPos = fns.getStart(s) + 17
 
         lipsyncData, visemes = getLipData(s, startPos, RB)
 
@@ -359,10 +186,9 @@ def mainSplit(lipsyncs, mid):
                     else:
                         visemeFrame[visemeEdit] = lips[1][y]
             visemeState.append(visemeFrame.copy())
-        songMap = midiProcessing(mid)
-        songTime, songSeconds, songTempo, songAvgTempo = songArray(songMap)
+        songMap = fns.midiProcessing(mid)
+        songTime, songSeconds, songTempo, songAvgTempo = fns.songArray(songMap)
         secondsArray = np.array(songSeconds)
-        
         
         # print(len(visemeState), visemes)
         # exit()
@@ -378,7 +204,7 @@ def mainSplit(lipsyncs, mid):
                 mapLower = secondsArray[secondsArray <= secs].max()
                 arrIndex = songSeconds.index(mapLower)
                 timeFromChange = secs - songSeconds[arrIndex]
-                ticksFromChange = s2t(timeFromChange, tpb, songTempo[arrIndex])
+                ticksFromChange = fns.s2t(timeFromChange, fns.tpb, songTempo[arrIndex])
                 timeVal = songTime[arrIndex] + round(ticksFromChange) - timeStart
                 timeAdd = songTime[arrIndex] + round(ticksFromChange) - timeStart
 
@@ -390,7 +216,7 @@ def mainSplit(lipsyncs, mid):
                         textEvent = f'[{visemes[i]} {x[i]} hold]'.lower()
                     else:
                         textEvent = f'[{visemes[i]} {x[i]} hold]'
-                    mid.tracks[-1].append(MetaMessage('text', text=textEvent, time=timeVal))
+                    mid.tracks[-1].append(fns.MetaMessage('text', text=textEvent, time=timeVal))
                     timeVal = 0
 
                     prevFrame = x[i]
@@ -416,9 +242,9 @@ if __name__ == '__main__':
         if file.endswith(".lipsync"):
             lipsyncs.append(file)
         if file.endswith(".mid"):
-            mid = MidiFile(file)
+            mid = fns.MidiFile(file)
     if mid == "":
-        mid = defaultMidi()
+        mid = fns.defaultMidi()
     if "-split" in sys.argv:
         mainSplit(lipsyncs, mid)
     else:

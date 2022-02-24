@@ -3,27 +3,13 @@ import os
 import struct
 import sys
 
+import common.classes as cls
+import common.functions as fns
 from mido import Message, MetaMessage, MidiFile, MidiTrack
 from mido import merge_tracks
 
 
-class venueItem:
-    def __init__(self, time, event):
-        self.time = time
-        self.event = event
-
-
-class consoleType:
-    def __init__(self, console):
-        if console == '360':
-            self.endian = 'big'
-            self.pack = '>f'
-        else:
-            self.endian = 'little'
-            self.pack = '<f'
-
-
-console = consoleType('PS4')
+console = cls.consoleType('PS4')
 tpb = 480
 
 # All venue anim parts have 13 unknown bytes after them (always seems to be 13)
@@ -132,17 +118,6 @@ ppDic = {
 
 }
 
-
-def readFourBytes(anim, start):
-    x = []
-    for y in range(4):  # Iterate through the 4 bytes that make up the starting number
-        x.append(anim[start])
-        start += 1
-    xBytes = bytearray(x)
-    x = int.from_bytes(xBytes, console.endian)
-    return x, xBytes, start
-
-
 def readSixteenBytes(anim, start):
     x = []
     for y in range(16):  # Iterate through the 16 bytes to determine rbsong type
@@ -155,19 +130,10 @@ def readSixteenBytes(anim, start):
         return False
 
 
-def defaultMidi():
-    mid = MidiFile()
-    track = MidiTrack()
-    mid.tracks.append(track)
-    track.append(MetaMessage('set_tempo', tempo=500000, time=0))
-    track.append(MetaMessage('time_signature', numerator=4, denominator=4, time=0))
-    return mid
-
-
 def pullEventName(anim, start):
     eventname_loc = b'RBVenueAuthoring'
     eventstart = anim.find(eventname_loc, start) + len(eventname_loc) + 12
-    animNameLen, animNameLenByte, eventstart = readFourBytes(anim, eventstart)
+    animNameLen, animNameLenByte, eventstart = fns.readFourBytes(anim, eventstart, console)
 
     animName = []
     for y in range(animNameLen):
@@ -184,15 +150,15 @@ def pullData(anim, start, beat):
     animName = pullEventName(anim, start)
     if animName not in dataToPull:
         return -1, -1, start
-    events, eventsByte, start = readFourBytes(anim, start)
+    events, eventsByte, start = fns.readFourBytes(anim, start, console)
     if readSixteenBytes(anim, start):
         start += 43
-        events, eventsByte, start = readFourBytes(anim, start)
+        events, eventsByte, start = fns.readFourBytes(anim, start, console)
 
     eventsList = []
     for x in range(events):
-        time, timeByte, start = readFourBytes(anim, start)
-        eventLen, eventLenByte, start = readFourBytes(anim, start)
+        time, timeByte, start = fns.readFourBytes(anim, start)
+        eventLen, eventLenByte, start = fns.readFourBytes(anim, start, console)
         event = []
         for y in range(eventLen):
             event.append(chr(anim[start]))
@@ -213,7 +179,7 @@ def pullData(anim, start, beat):
                 nextBeatTicks = beat[int(splitFloat[1]) + 1] - beat[int(splitFloat[1])]
                 timeFromBeat = round(nextBeatTicks * splitFloat[0])
                 timeInSong = beat[int(splitFloat[1])] + timeFromBeat
-                eventsList.append(venueItem(timeInSong, event))
+                eventsList.append(cls.venueItem(timeInSong, event))
             except:
                 continue
 
