@@ -70,15 +70,15 @@ rest = ['shot_5']
 def pullData(anim, start, animType):  # PP events seem to have 4 extra bytes in between events.
     # Always seems to be 0000. If not, gives warning.
 
-    events, eventsByte, start = fns.readFourBytesInt(anim, start, console)
+    events, eventsByte, start = fns.readFourBytes(anim, start, console)
     eventsList = []
     for x in range(events):
         if animType == 'postproc':
-            unknown, unknownByte, start = fns.readFourBytesInt(anim, start, console)
+            unknown, unknownByte, start = fns.readFourBytes(anim, start, console)
             if unknown != 0:
                 print("Unknown variable not equal to 0. Please contact me.")
                 input("Press Enter to continue...")
-        eventLen, eventLenByte, start = fns.readFourBytesInt(anim, start, console)
+        eventLen, eventLenByte, start = fns.readFourBytes(anim, start, console)
         event = []
         for y in range(eventLen):
             event.append(chr(anim[start]))
@@ -90,7 +90,7 @@ def pullData(anim, start, animType):  # PP events seem to have 4 extra bytes in 
                 event = eventsList[-1].event
         else:
             event = ''.join(event)
-        time, timeByte, start = fns.readFourBytesInt(anim, start, console)
+        time, timeByte, start = fns.readFourBytes(anim, start, console)
         if struct.unpack(console.pack, timeByte)[0] / 30 < 0:
             timeAdd = 0
         else:
