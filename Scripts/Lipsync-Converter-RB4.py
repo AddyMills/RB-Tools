@@ -11,30 +11,35 @@ singalongNames = ("Bass_singalong",
                   "Singalong",
                   "singalong")
 
+singalongNotes = {
+    "Bass_singalong": 85,
+    "Drum_singalong": 86,
+    "Guitar_singalong": 87,
+    "Singalong": 88,
+    "singalong": 89
+}
+
 RB4 = cls.RBlipData(4)
+
 
 def getVisemes(lipsync, start, lipdata):
     singalongViseme = []
     singalongVisemeNum = []
     dummy, visemeCount, start = fns.readFourBytes(lipsync, start, lipdata)
-    # print(visemeCount)
     visemeByte = bytearray()
     visemes = []
     for x in range(0, fns.toInt(visemeCount)):
-        lenCount = 0
         # y = 0 # Counter for the length of viseme name
         visemeName = []
         visemeNameCount = []
         for z in range(0, lipdata.visemeItem):
             visemeNameCount.append(lipsync[start])
             start += 1
-        # print(visemeNameCount)
         if lipdata.endian == "little":
             visemeNameCount.reverse()
         visemeByteTemp = bytearray(visemeNameCount)
 
         visemeNameLen = int.from_bytes(bytearray(visemeNameCount), byteorder="big", signed=False)
-        # print(visemeNameLen)
         for z in range(0, visemeNameLen):
             visemeName.append(chr(lipsync[start]))
             start += 1
@@ -42,11 +47,11 @@ def getVisemes(lipsync, start, lipdata):
         if y in singalongNames:
             singalongViseme.append(y)
             singalongVisemeNum.append(x)
-            # visemes.append(y)
         else:
             visemes.append(y)
         visemeByte.extend(visemeByteTemp)
     return visemes, singalongViseme, singalongVisemeNum, start
+
 
 def readLipParts(lipsync, start):
     # print(start)
@@ -98,7 +103,6 @@ def getLipData(rbsong, lipstart, lipdata):
     visemeByte.extend(visemeNum)
     visemeCount = int.from_bytes(visemeNum, byteorder="big",
                                  signed=False)  # Get an int from the 32-bit array to make the counter for the visemes
-    # print(visemeCount)
     visemes = []
 
     for x in range(0, visemeCount):
@@ -107,13 +111,11 @@ def getLipData(rbsong, lipstart, lipdata):
         for x in range(0, lipdata.visemeItem):
             visemeNameCount.append(rbsong[lipstart])
             lipstart += 1
-        # print(visemeNameCount)
         if lipdata.endian == "little":
             visemeNameCount.reverse()
         visemeByteTemp = bytearray(visemeNameCount)
 
         visemeNameLen = int.from_bytes(bytearray(visemeNameCount), byteorder="big", signed=False)
-        # print(visemeNameLen)
         for x in range(0, visemeNameLen):
             visemeName.append(chr(rbsong[lipstart]))
             if x == 0:  # RB2/3 have the visemes capitalized, while RB4 does not. This converts the first letter to a capital in hex
@@ -128,23 +130,15 @@ def getLipData(rbsong, lipstart, lipdata):
         if exp_check != b'exp':
             if chr(visemeByteTemp[4]) == 'e':
                 visemeByteTemp[4] -= 0x20
-        # print(visemeByteTemp)
-        # print(exp_check)
         visemes.append(''.join(visemeName).capitalize())
         visemeByte.extend(visemeByteTemp)
-    # print(len(visemes), visemes)
-
-    # print(hex(lipstart))
     visemeElements = []
     for x in range(0, lipdata.visemeItem):
         visemeElements.append(rbsong[lipstart])
         lipstart += 1
-    # print(visemeNameCount)
     if lipdata.endian == "little":
         visemeElements.reverse()
     visemeElementsTemp = bytearray(visemeElements)
-
-    # print(visemeByte)
     visemeElements = int.from_bytes(visemeElementsTemp, byteorder="big", signed=False)
     frameCount = []
     visemeStart = lipstart  # Create copy of viseme starting point
@@ -157,15 +151,14 @@ def getLipData(rbsong, lipstart, lipdata):
     frameByteTemp = bytearray(frameCount)  # Number of frames in song. Divide by 30 to get total in seconds.
     frameCount = int.from_bytes(frameByteTemp, byteorder="big", signed=False)
     lipstart = visemeStart  # Return to viseme data
-    # print(frameByteTemp)
     visemeByte.extend(frameByteTemp)
     visemeByte.extend(visemeElementsTemp)
 
     visemeData, frameDataNum, frameDataName = fns.genFrameData(rbsong, frameCount, visemes, lipstart)
 
     visemeByte.extend(bytearray(visemeData))
-    # print(visemeByte)
     return visemeByte
+
 
 def main_lipsync_new(lipsync):
     with open(lipsync, "rb") as f:  # Open the file
@@ -174,12 +167,11 @@ def main_lipsync_new(lipsync):
     frames = []
     header = cls.RB2lipsyncHeader()  # Prepare the RB2/3 header for writing later
     dummy, frameRate, start = fns.readFourBytes(lipsync,
-                                     8)  # Grab the framerate. Seems to all be 30, but if not, I can use it later on
+                                                8)  # Grab the framerate. Seems to all be 30, but if not, I can use it later on
     frameRate = round(struct.unpack('<f', frameRate)[0])  # Frame rate is a float
 
     visemes, singalongs, singalongsNum, start = getVisemes(lipsync, start, RB4)
     lipParts, start = readLipParts(lipsync, start)
-    # print(lipParts)
     dummy, frameNum, start = fns.readFourBytes(lipsync, start)
     for x in range(fns.toInt(frameNum)):
         dummy, frameData, start = fns.readFourBytes(lipsync, start)
@@ -189,7 +181,6 @@ def main_lipsync_new(lipsync):
 
     for x in range(len(lipParts)):
         lipsyncFile.append([])
-    # print(frames[:150])
 
     for x in frames:
         if x != currFrame:
@@ -199,7 +190,6 @@ def main_lipsync_new(lipsync):
             lipsyncPart = 0
             lipChange = []
             for y in range(toGo):
-                # print(y, toGo)
                 if visemeActive == 0:
                     if lipsync[start] == 0xff:
                         if lipChange == []:
@@ -216,7 +206,6 @@ def main_lipsync_new(lipsync):
                     lipChange.append(lipsync[start])
                     visemeActive = 0
                 start += 1
-            # print(lipsyncPart)
             lipsyncFile[lipsyncPart].append(lipChange.copy())
             lipAppend = len(lipParts) - 1
             if lipsyncPart != lipAppend:
@@ -225,31 +214,67 @@ def main_lipsync_new(lipsync):
         else:
             for y in range(len(lipParts)):
                 lipsyncFile[y].append(0)
-    lipsyncVals = [[],[],[],[]]
+    lipsyncVals = [[], [], [], []]
+    tempArray = [0] * (len(lipsyncFile[0]) + 1)
+    singalongVals = [tempArray.copy(), tempArray.copy(), tempArray.copy(), tempArray.copy()]
+    # Create dictionary for singalongs? I dunno
     for num, lips in enumerate(lipsyncFile):
-        for j, i in enumerate(lips):  # Rewrite visemes removing singalong events
+        for j, i in enumerate(lips):  # Rewrite visemes and extracting singalong events
             skip = 0
             if i != 0:
                 tempList = []
                 for z, y in enumerate(i):
                     if z % 2 == 0:
                         if y in singalongsNum:
-                            #lipSingalongs[singalongsNum.index(y)].append(j)
+                            singalongToChange = y
                             skip = 1
                         else:
                             tempList.append(y)
                     else:
                         if skip == 1:
+                            singalongVals[singalongsNum.index(singalongToChange)][j] = y
                             skip = 0
                         else:
                             tempList.append(y)
-                #print(len(tempList))
-                if not (len(tempList)/2).is_integer():
+                # print(len(tempList))
+                if not (len(tempList) / 2).is_integer():
                     print(i)
-                lipsyncVals[num].append(round(len(tempList)/2))
+                lipsyncVals[num].append(round(len(tempList) / 2))
                 lipsyncVals[num].extend(tempList.copy())
             else:
                 lipsyncVals[num].append(i)
+    singalongMidi = fns.defaultMidi()
+    venueTracks = []
+    for y, x in enumerate(singalongVals):
+        lastStrength = 0
+        timeSinceChange = 0
+        newTrack = fns.MidiTrack()
+        for j, i in enumerate(x):
+            if i > 0:
+                strength = 1
+            else:
+                strength = 0
+            if strength == lastStrength:
+                timeSinceChange += 1
+            else:
+                if strength == 0:
+                    noteType = 'note_off'
+                else:
+                    noteType = 'note_on'
+                # print(singalongs[y])
+                newTrack.append(fns.Message(type=noteType, note=singalongNotes[singalongs[y]], velocity=strength*96,
+                                            time=round(fns.s2t(timeSinceChange / frameRate, fns.tpb, 500000))))
+                # print(j, strength, round(fns.s2t(timeSinceChange/frameRate, fns.tpb, 500000)))
+                timeSinceChange = 0
+            if i == 0:
+                lastStrength = 0
+            else:
+                lastStrength = 1
+        venueTracks.append(newTrack)
+    singalongMidi.tracks.append(fns.merge_tracks(venueTracks))
+    singalongMidi.tracks[-1].name = "Singalongs"
+    singalongMidi.save(filename="Singalongs.mid")
+    # print(singalongMidi.tracks)
 
     for i, lips in enumerate(lipsyncVals):
         visemeHeader = bytearray()
@@ -259,16 +284,17 @@ def main_lipsync_new(lipsync):
             visemeHeader.extend(y)
         visemeHeader.extend(len(frames).to_bytes(4, byteorder='big', signed=False))
         visemeHeader.extend(len(lips).to_bytes(4, byteorder='big', signed=False))
-        #print(lipsyncVals)
+        # print(lipsyncVals)
         visemeHeader.extend(bytearray(lips))
         lipsyncVals[i] = fns.genRB2LipData(header, visemeHeader)
-    #print(testLipsync)
-    #print(lipSingalongs)
+    # print(testLipsync)
+    # print(lipSingalongs)
     for y, x in enumerate(lipParts):
         with open(f"{y}-Part_{x}.lipsync", "wb") as g:
             g.write(lipsyncVals[y])
 
     return
+
 
 def main_rbsong(filename):
     with open(filename, "rb") as f:
