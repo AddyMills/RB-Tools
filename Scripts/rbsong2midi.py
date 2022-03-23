@@ -115,8 +115,39 @@ ppDic = {
     'profilm_b': 'ProFilm_b',
     'profilm_mirror_a': 'ProFilm_mirror_a',
     'profilm_psychedelic_blue_red': 'ProFilm_psychedelic_blue_red'
-
 }
+
+ppDefChange = { #Change the "filter" effects from RB4 to less annoying ones by default
+              "bloom": "ProFilm_a",
+              "bright": "ProFilm_a",
+              "clean_trails": "ProFilm_a",
+              "contrast_a": "ProFilm_a",
+              "desat_blue": "ProFilm_a",
+              "desat_posterize_trails": "ProFilm_a",
+              "film_16mm": "ProFilm_a",
+              "film_b+w": "film_b+w",
+              "film_blue_filter": "ProFilm_a",
+              "film_contrast": "ProFilm_a",
+              "film_contrast_blue": "ProFilm_a",
+              "film_contrast_green": "ProFilm_a",
+              "film_contrast_red": "ProFilm_a",
+              "film_sepia_ink": "film_sepia_ink",
+              "film_silvertone": "film_silvertone",
+              "flicker_trails": "ProFilm_a",
+              "horror_movie_special": "ProFilm_b",
+              "photo_negative": "film_sepia_ink",
+              "photocopy": "photocopy",
+              "posterize": "ProFilm_a",
+              "ProFilm_a": "ProFilm_a",
+              "ProFilm_b": "ProFilm_b",
+              "ProFilm_mirror_a": "ProFilm_a",
+              "ProFilm_psychedelic_blue_red": "ProFilm_a",
+              "shitty_tv": "ProFilm_a",
+              "space_woosh": "ProFilm_a",
+              "video_a": "ProFilm_a",
+              "video_bw": "video_bw",
+              "video_security": "ProFilm_a",
+              "video_trails": "ProFilm_a"}
 
 def readSixteenBytes(anim, start):
     x = []
@@ -144,7 +175,7 @@ def pullEventName(anim, start):
     return animName
 
 
-def pullData(anim, start, beat):
+def pullData(anim, start, beat, origPP):
     start_loc = b'driven_prop'
     start = anim.find(start_loc, start) + len(start_loc) + 4
     animName = pullEventName(anim, start)
@@ -172,6 +203,9 @@ def pullData(anim, start, beat):
             event = ''.join(event)
             if event in ppDic:
                 event = ppDic[event]
+            if origPP == False:
+                if event in ppDefChange:
+                    event = ppDefChange[event]
         if eventsList != -1:
             roundFloat = round(struct.unpack(console.pack, timeByte)[0], 3)
             splitFloat = math.modf(roundFloat)
@@ -248,8 +282,13 @@ def parseData(eventsDict, mid, oneVenue):
                             textEvent = f'[lighting ({x.event})]'
                         elif tracks == 'postproc':
                             textEvent = f'[{x.event}.pp]'
-                            if textEvent not in legalProcs:
-                                textEvent = '[ProFilm_a.pp]'
+                            if 'rb4PP' in locals():
+                                if not rb4PP:
+                                    if textEvent not in legalProcs:
+                                        textEvent = '[ProFilm_a.pp]'
+                            else:
+                                if textEvent not in legalProcs:
+                                    textEvent = '[ProFilm_a.pp]'
                         else:
                             textEvent = x.event
                             if textEvent.startswith('band'):
@@ -318,7 +357,7 @@ def main(anim, mid, output, oneVenue):
     # print(eventTotal)
     eventsDict = {}
     for x in range(eventTotal):
-        events, eventsName, start = pullData(anim, start, beat)
+        events, eventsName, start = pullData(anim, start, beat, rb4PP)
         # print(eventsName)
         eventsDict[eventsName] = events
     mid = parseData(eventsDict, mid, oneVenue)
@@ -346,6 +385,10 @@ if __name__ == "__main__":
         input("Press any key to exit")
         exit()
     output = os.path.splitext(sys.argv[1])[0]
+    if 'rb4' in sys.argv:
+        rb4PP = True
+    else:
+        rb4PP = False
     if 'separate' in sys.argv:
         oneVenue = False
     else:

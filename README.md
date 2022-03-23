@@ -62,9 +62,15 @@ Dependencies: mido
 
 Similar to Milo2Midi, but this works with RB4's rbsong file. Takes in an rbsong file as an argument, and outputs a MIDI file with the venue events from the rbsong file.
 
+Will rename any non-basic pp event to ProFilm_a, ProFilm_b, or film_bw (whichever is closest) to make ported songs look nicer.
+
 MIDI file with the same name as the rbsong is **required** for this script to work.
 
-Optional: add "separate" to your arguments to get separated venue tracks (lights, camera cuts, and post procs)
+Optional Arguments: 
+
+Add "separate" to your arguments to get separated venue tracks (lights, camera cuts, and post procs)
+
+Add "rb4" to your arguments to get the original post process calls.
 
 ## Voc2Lipsync
 
