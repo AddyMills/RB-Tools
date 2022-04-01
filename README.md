@@ -1,6 +1,8 @@
 # RB-Tools
 Various Tools to work with Rock Band files. Written using Python 3.9. Dependencies, if any, are listed in each section.
 
+Please note, you need all files in the repo for it to work properly. All of the scripts rely on the Python files found in the "common" folder.
+
 
 ## Lipsync Converter
 
