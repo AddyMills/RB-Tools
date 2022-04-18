@@ -238,7 +238,13 @@ if __name__ == '__main__':
     dirname = os.path.dirname(os.path.abspath(filename))
     mid = ""
     lipsyncs = []
+    """
     for file in os.listdir(dirname):
+        if file.endswith(".lipsync"):
+            lipsyncs.append(file)
+        if file.endswith(".mid"):
+            mid = fns.MidiFile(file)"""
+    for file in sys.argv:
         if file.endswith(".lipsync"):
             lipsyncs.append(file)
         if file.endswith(".mid"):
