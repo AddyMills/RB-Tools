@@ -431,7 +431,6 @@ def pullMetaData(anim):
 def main(anim, mid, output, oneVenue):
     beat = grabBeatTrack(mid)
     start = 0
-    pullMetaData(anim)
     eventTotal = anim.count(b'driven_prop')
     # print(eventTotal)
     eventsDict = {}
@@ -453,6 +452,11 @@ if __name__ == "__main__":
     if sys.argv[1].endswith(".rbsong"):
         with open(sys.argv[1], "rb") as f:
             anim = f.read()
+        try:
+            pullMetaData(anim)
+            print("Extracted metadata")
+        except:
+            print("Metadata failed to extract")
         try:
             mid = MidiFile(os.path.splitext(sys.argv[1])[0] + '.mid')
         except:
