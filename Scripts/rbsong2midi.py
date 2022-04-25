@@ -8,7 +8,6 @@ import common.functions as fns
 from mido import Message, MetaMessage, MidiFile, MidiTrack
 from mido import merge_tracks
 
-
 console = cls.consoleType('PS4')
 tpb = 480
 
@@ -117,37 +116,38 @@ ppDic = {
     'profilm_psychedelic_blue_red': 'ProFilm_psychedelic_blue_red'
 }
 
-ppDefChange = { #Change the "filter" effects from RB4 to less annoying ones by default
-              "bloom": "ProFilm_a",
-              "bright": "ProFilm_a",
-              "clean_trails": "ProFilm_a",
-              "contrast_a": "ProFilm_a",
-              "desat_blue": "ProFilm_a",
-              "desat_posterize_trails": "ProFilm_a",
-              "film_16mm": "ProFilm_a",
-              "film_b+w": "film_b+w",
-              "film_blue_filter": "ProFilm_a",
-              "film_contrast": "ProFilm_a",
-              "film_contrast_blue": "ProFilm_a",
-              "film_contrast_green": "ProFilm_a",
-              "film_contrast_red": "ProFilm_a",
-              "film_sepia_ink": "film_sepia_ink",
-              "film_silvertone": "film_silvertone",
-              "flicker_trails": "ProFilm_a",
-              "horror_movie_special": "ProFilm_b",
-              "photo_negative": "film_sepia_ink",
-              "photocopy": "photocopy",
-              "posterize": "ProFilm_a",
-              "ProFilm_a": "ProFilm_a",
-              "ProFilm_b": "ProFilm_b",
-              "ProFilm_mirror_a": "ProFilm_a",
-              "ProFilm_psychedelic_blue_red": "ProFilm_a",
-              "shitty_tv": "ProFilm_a",
-              "space_woosh": "ProFilm_a",
-              "video_a": "ProFilm_a",
-              "video_bw": "video_bw",
-              "video_security": "ProFilm_a",
-              "video_trails": "ProFilm_a"}
+ppDefChange = {  # Change the "filter" effects from RB4 to less annoying ones by default
+    "bloom": "ProFilm_a",
+    "bright": "ProFilm_a",
+    "clean_trails": "ProFilm_a",
+    "contrast_a": "ProFilm_a",
+    "desat_blue": "ProFilm_a",
+    "desat_posterize_trails": "ProFilm_a",
+    "film_16mm": "ProFilm_a",
+    "film_b+w": "film_b+w",
+    "film_blue_filter": "ProFilm_a",
+    "film_contrast": "ProFilm_a",
+    "film_contrast_blue": "ProFilm_a",
+    "film_contrast_green": "ProFilm_a",
+    "film_contrast_red": "ProFilm_a",
+    "film_sepia_ink": "film_sepia_ink",
+    "film_silvertone": "film_silvertone",
+    "flicker_trails": "ProFilm_a",
+    "horror_movie_special": "ProFilm_b",
+    "photo_negative": "film_sepia_ink",
+    "photocopy": "photocopy",
+    "posterize": "ProFilm_a",
+    "ProFilm_a": "ProFilm_a",
+    "ProFilm_b": "ProFilm_b",
+    "ProFilm_mirror_a": "ProFilm_a",
+    "ProFilm_psychedelic_blue_red": "ProFilm_a",
+    "shitty_tv": "ProFilm_a",
+    "space_woosh": "ProFilm_a",
+    "video_a": "ProFilm_a",
+    "video_bw": "video_bw",
+    "video_security": "ProFilm_a",
+    "video_trails": "ProFilm_a"}
+
 
 def readSixteenBytes(anim, start):
     x = []
@@ -350,9 +350,88 @@ def grabBeatTrack(mid):
     return beatNotes
 
 
+metadataTypes = {'Tempo': "symbol", 'Vocal Tonic Note': "enum", 'Vocal Track Scroll Duration Ms': "enum",
+                 'Global Tuning Offset': "float", 'Band Fail Sound Event': "symbol", 'Vocal Percussion Patch': "string",
+                 'Drum Kit Patch': "string", 'Improv Solo Patch': "symbol", 'Dynamic Drum Fill Override': "int",
+                 'Improv Solo Volume Db': "float"}
+
+kitTypes = {
+    "kit01": "Default",
+    "kit02": "Arena",
+    "kit03": "Vintage",
+    "kit04": "Trashy",
+    "kit05": "Electronic"
+}
+
+def pullString(anim, start):
+    length, lengthByte, start = fns.readFourBytes(anim, start, console)
+    blankArray = []
+    for y in range(0, length):
+        blankArray.append(chr(anim[start]))
+        start += 1
+    if length == 0:
+        toReturn = ""
+    else:
+        toReturn = ''.join(blankArray)
+    #print(length)
+    return toReturn, start
+
+
+def pullMetaData(anim):
+    start_loc = b'RBSongMetadata'
+    start = anim.find(start_loc) + (
+            len(start_loc) * 2) + 4 + 12  # Skip the name twice, length of name once, and 12 bytes afterwards
+    #print(start)
+    events, eventsByte, start = fns.readFourBytes(anim, start, console)
+    #print(events, start)
+    metadataEvents = []
+    for x in range(0, events):
+        toAppend, start = pullString(anim, start)
+        metadataEvents.append(toAppend.title().replace('_', " "))
+        start += 4
+    metadataValues = []
+    for x in range(0, events):
+        #print(metadataEvents[x], start)
+        if metadataTypes[metadataEvents[x]] == "symbol" or metadataTypes[metadataEvents[x]] == "string":
+            toAppend, start = pullString(anim, start)
+            if metadataEvents[x] == 'Vocal Percussion Patch' or metadataEvents[x] == 'Band Fail Sound Event':
+                start += 1
+            #print(toAppend)
+            metadataValues.append(toAppend)
+        elif metadataTypes[metadataEvents[x]] == "enum":
+            enumArray = bytearray()
+            for y in range(0,8):
+                enumArray.append(anim[start])
+                start += 1
+            metadataValues.append(int.from_bytes(enumArray, console.endian))
+        elif metadataTypes[metadataEvents[x]] == "float":
+            floatArray = bytearray()
+            for y in range(0,4):
+                floatArray.append(anim[start])
+                start += 1
+            metadataValues.append(struct.unpack('f', floatArray)[0])
+        elif metadataTypes[metadataEvents[x]] == "int":
+            intArray = bytearray()
+            for y in range(0,4):
+                intArray.append(anim[start])
+                start += 1
+            metadataValues.append(int.from_bytes(intArray, console.endian))
+    with open(os.path.splitext(sys.argv[1])[0] + "_metadata.txt", "w") as f:
+        for x in range(0, events):
+            if metadataEvents[x] == "Drum Kit Patch":
+                kitNumber = metadataValues[x][-12:]
+                f.write(f'{metadataEvents[x]} - {metadataValues[x]} ({kitTypes[kitNumber[:5]]})\n')
+            else:
+                f.write(f'{metadataEvents[x]} - {metadataValues[x]}\n')
+    #print(metadataValues)
+    #print(start)
+    return
+
+
 def main(anim, mid, output, oneVenue):
     beat = grabBeatTrack(mid)
     start = 0
+    pullMetaData(anim)
     eventTotal = anim.count(b'driven_prop')
     # print(eventTotal)
     eventsDict = {}
