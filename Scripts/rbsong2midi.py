@@ -420,9 +420,9 @@ def pullMetaData(anim):
         for x in range(0, events):
             if metadataEvents[x] == "Drum Kit Patch":
                 kitNumber = metadataValues[x][-12:]
-                f.write(f'{metadataEvents[x]} - {metadataValues[x]} ({kitTypes[kitNumber[:5]]})\n')
+                f.write(f'{metadataEvents[x]}: {metadataValues[x]} ({kitTypes[kitNumber[:5]]})\n')
             else:
-                f.write(f'{metadataEvents[x]} - {metadataValues[x]}\n')
+                f.write(f'{metadataEvents[x]}: {metadataValues[x]}\n')
     #print(metadataValues)
     #print(start)
     return
