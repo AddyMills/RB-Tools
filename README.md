@@ -68,6 +68,8 @@ Will rename any non-basic pp event to ProFilm_a, ProFilm_b, or film_bw (whicheve
 
 MIDI file with the same name as the rbsong is **required** for this script to work.
 
+Will also extract the metadata for a song and place it in a text file in the folder (tonic note, vocal speed, drum soundbank, etc.). This portion of the script does not need a MIDI file.
+
 Optional Arguments: 
 
 Add "separate" to your arguments to get separated venue tracks (lights, camera cuts, and post procs)

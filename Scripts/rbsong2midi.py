@@ -378,8 +378,13 @@ def pullString(anim, start):
 
 
 def pullMetaData(anim):
+    version = int.from_bytes(anim[0:3], console.endian)
+    #print(version)
     start_loc = b'RBSongMetadata'
-    start = anim.find(start_loc) + (
+    if version == 18:
+        start = anim.find(start_loc) + len(start_loc) + 12
+    else:
+        start = anim.find(start_loc) + (
             len(start_loc) * 2) + 4 + 12  # Skip the name twice, length of name once, and 12 bytes afterwards
     #print(start)
     events, eventsByte, start = fns.readFourBytes(anim, start, console)
