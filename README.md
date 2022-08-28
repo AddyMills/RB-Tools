@@ -76,6 +76,14 @@ Add "separate" to your arguments to get separated venue tracks (lights, camera c
 
 Add "rb4" to your arguments to get the original post process calls.
 
+## Songdta2txt
+
+Dependencies: none
+
+Parses the songdta_ps4 file and writes a file similar to an RB2/3 songs.dta file. Data parsed is unorganized for now, but you can copy/paste them into a songs.dta file in the appropriate places.
+
+Usage: Run the script with the songsdta_ps4 as its only argument
+
 ## Voc2Lipsync
 
 Dependencies: mido
