@@ -229,7 +229,27 @@ def pullMoggData(dta):
     
     return mogg_dict
     
-def fill_dta_template(song_dict, mogg_dict, rbsong_dict):
+def get_solos_from_midi(midi):
+    solo_array = [False, False, False, False] # guitar, drum, bass, vocal_percussion
+    mid = MidiFile(midi)
+    for track in mid.tracks:
+#        print(track.name)
+        for msg in track:
+            if "PART" in track.name and msg.type == "text":
+                if "_solo" in msg.text or "_start" in msg.text:
+#                    print(msg)
+                    if "DRUM" in track.name:
+                        solo_array[1] = True
+                    elif "BASS" in track.name:
+                        solo_array[2] = True
+                    elif "GUITAR" in track.name:
+                        solo_array[0] = True
+                    elif "VOCALS" in track.name:
+                        solo_array[3] = True
+
+    return solo_array
+    
+def fill_dta_template(song_dict, mogg_dict, rbsong_dict, solo_array):
 #    print(song_dict)
 #    print(mogg_dict)
 #    print(rbsong_dict)
@@ -280,7 +300,21 @@ def fill_dta_template(song_dict, mogg_dict, rbsong_dict):
     for inst in ["drum", "guitar", "bass", "vocals", "band"]:
         dta.append(f"      ({inst} {song_dict[inst]})")
     dta.append(f"   )")
-    dta.append(f"   (solo (TODO: automate this via rbmid/mid) (guitar drum bass vocal_percussion))")
+    
+    # solo info
+    if any(solo_array):
+        solos = ""
+        if solo_array[0]:
+            solos += "guitar "
+        if solo_array[1]:
+            solos += "drum "
+        if solo_array[2]:
+            solos += "bass "
+        if solo_array[3]:
+            solos += "vocal_percussion"
+        solos = solos.rstrip()
+        dta.append(f"   (solo ({solos}))")
+    
     dta.append(f"   (format 10)\n   (version 30)\n   (game_origin {song_dict['game_origin']})\n   (rating 2)")
     dta.append(f"   (genre {song_dict['genre']})")
     dta.append(f"   (vocal_gender {'female' if song_dict['vocal_gender'] == 2 else 'male'})")
@@ -306,11 +340,6 @@ def main():
     
     # get current working directory
     cwd = Path().absolute()
-    files = []
-    for ext in ["*.mogg.dta", "*.songdta_ps4", "*.rbsong"]:
-        # need songdta_ps4, mogg_dta and rbsong
-        files.extend(cwd.glob(f"{sys.argv[1]}/{ext}"))
-#    print(files)
     
     songdta_file = []
     songdta_file.extend(cwd.glob(f"{sys.argv[1]}/*.songdta_ps4"))
@@ -344,7 +373,15 @@ def main():
     
 #    print(mogg_dta)
     
-    dta_array = fill_dta_template(songdta, mogg_dta, rbsong)
+    midi_file = []
+    midi_file.extend(cwd.glob(f"{sys.argv[1]}/*.mid"))
+    if len(mogg_dta_file) != 1:
+        print("mid error")
+        exit()
+        
+    midi_solo_array = get_solos_from_midi(midi_file[0])
+    
+    dta_array = fill_dta_template(songdta, mogg_dta, rbsong, midi_solo_array)
     
     with open("songs.dta", "w") as f:
         for line in dta_array:
