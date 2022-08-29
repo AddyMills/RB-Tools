@@ -203,10 +203,11 @@ def pullMoggData(dta):
     vol_values = [float(x) for x in vols[1][4:-1].split(" ")]
 
     tracks = tracks[2:-2]
-    mogg_dict["drum"] = ""
     for x in range(len(tracks)):
         line = tracks[x]
         if "drum" in line:
+            if "drum" not in mogg_dict:
+                mogg_dict["drum"] = ""
             mogg_dict["drum"] += f"{tracks[x+1][1:-1]} "
         elif "bass" in line:
             mogg_dict["bass"] = f"{tracks[x+1][1:-1]}"
@@ -229,10 +230,10 @@ def pullMoggData(dta):
     return mogg_dict
     
 def fill_dta_template(song_dict, mogg_dict, rbsong_dict):
-    print(song_dict)
-    print(mogg_dict)
-    print(rbsong_dict)
-    print("\n\n\n")
+#    print(song_dict)
+#    print(mogg_dict)
+#    print(rbsong_dict)
+#    print("\n\n\n")
     dta = []
     dta.append(f"({song_dict['shortname']}")
     dta.append(f"   (name \"{song_dict['name']}\")")
@@ -241,16 +242,14 @@ def fill_dta_template(song_dict, mogg_dict, rbsong_dict):
         dta.append(f"   (master TRUE)")
     dta.append(f"   (song_id {song_dict['song_id']})")
     
+    # song info - tracks, mixing, etc
     dta.append(f"   (song")
     dta.append(f"      (name \"songs/{song_dict['shortname']}/{song_dict['shortname']}\")")
-    dta.append(f"      (tracks")
-    dta.append(f"         (")
-    instruments = ["drum", "bass", "guitar", "vocals"]
-    for inst in instruments:
+    dta.append(f"      (tracks\n         (")
+    for inst in ["drum", "bass", "guitar", "vocals"]:
         if inst in mogg_dict:
             dta.append(f"            ({inst} ({mogg_dict[inst]}))")
-    dta.append(f"         )")
-    dta.append(f"      )")
+    dta.append(f"         )\n      )")
     if "crowd" in mogg_dict:
         dta.append(f"      (crowd_channels {mogg_dict['crowd']})")
     if song_dict["vocal_parts"] > 1:
@@ -262,14 +261,10 @@ def fill_dta_template(song_dict, mogg_dict, rbsong_dict):
         cores[n] = 1
     cores = " ".join(str(x) for x in cores)
     dta.append(f"      (cores ({cores}))")
-    dta.append(f"      (drum_solo")
-    dta.append(f"         (seqs (kick.cue snare.cue tom1.cue tom2.cue crash.cue))")
-    dta.append(f"      )")
-    dta.append(f"      (drum_freestyle")
-    dta.append(f"         (seqs (kick.cue snare.cue hat.cue ride.cue crash.cue))")
-    dta.append(f"      )")
-    dta.append(f"   )")
-    # tambourine, cowbell, or handclap
+    dta.append(f"      (drum_solo (seqs (kick.cue snare.cue tom1.cue tom2.cue crash.cue)))")
+    dta.append(f"      (drum_freestyle (seqs (kick.cue snare.cue hat.cue ride.cue crash.cue)))\n   )")
+    
+    # vocal percussion and drum kit banks
     if "cowbell" in rbsong_dict["Vocal Percussion Patch"]:
         dta.append(f"   (bank sfx/cowbell_bank.milo)")
     elif "handclap" in rbsong_dict["Vocal Percussion Patch"]:
@@ -282,15 +277,11 @@ def fill_dta_template(song_dict, mogg_dict, rbsong_dict):
     dta.append(f"   (preview {song_dict['preview_start']} {song_dict['preview_end']})")
     dta.append(f"   (song_length {song_dict['song_length']})")
     dta.append(f"   (rank")
-    instruments = ["drum", "guitar", "bass", "vocals", "band"]
-    for inst in instruments:
+    for inst in ["drum", "guitar", "bass", "vocals", "band"]:
         dta.append(f"      ({inst} {song_dict[inst]})")
     dta.append(f"   )")
     dta.append(f"   (solo (TODO: automate this via rbmid/mid) (guitar drum bass vocal_percussion))")
-    dta.append(f"   (format 10)")
-    dta.append(f"   (version 30)")
-    dta.append(f"   (game_origin {song_dict['game_origin']})")
-    dta.append(f"   (rating 2)")
+    dta.append(f"   (format 10)\n   (version 30)\n   (game_origin {song_dict['game_origin']})\n   (rating 2)")
     dta.append(f"   (genre {song_dict['genre']})")
     dta.append(f"   (vocal_gender {'female' if song_dict['vocal_gender'] == 2 else 'male'})")
     dta.append(f"   (year_released {song_dict['original_year']})")
@@ -300,12 +291,14 @@ def fill_dta_template(song_dict, mogg_dict, rbsong_dict):
     dta.append(f"   (album_name {song_dict['album_name']})")
     dta.append(f"   (album_track_number {song_dict['album_track_number']})")
     dta.append(f"   (vocal_tonic_note {rbsong_dict['Vocal Tonic Note']})")
-    if rbsong_dict["Global Tuning Offset"] != 0:
+    if rbsong_dict["Global Tuning Offset"] != "0.0":
         dta.append(f"   (tuning_offset_cents {rbsong_dict['Global Tuning Offset']})")
-    dta.append(f")\n")
+    dta.append(f")")
 
-    for d in range(len(dta)):
-        print(dta[d])
+#    for d in range(len(dta)):
+#        print(dta[d])
+        
+    return dta
 
 def main():
     # pass in a folder containing a mid, mogg_dta, songdta_ps4, and rbsong
@@ -351,7 +344,11 @@ def main():
     
 #    print(mogg_dta)
     
-    fill_dta_template(songdta, mogg_dta, rbsong)
+    dta_array = fill_dta_template(songdta, mogg_dta, rbsong)
+    
+    with open("songs.dta", "w") as f:
+        for line in dta_array:
+            f.write(f"{line}\n")
     
 if __name__ == "__main__":
     main()
