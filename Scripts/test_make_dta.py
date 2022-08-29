@@ -1,14 +1,11 @@
-import os
 import struct
 import sys
 import common.classes as cls
 import common.functions as fns
-from mido import Message, MetaMessage, MidiFile, MidiTrack
-from mido import merge_tracks
+from mido import MidiFile
 from pathlib import Path
 
 console = cls.consoleType('PS4')
-tpb = 480
 
 songDtaTypes = {
     "songdta_type": "uint",
@@ -199,16 +196,15 @@ def pullMoggData(dta):
                 else:
                     vols.append(line)
 
-    pan_values = [float(x) for x in pans[1][4:-1].split(" ")]
-    vol_values = [float(x) for x in vols[1][4:-1].split(" ")]
-
+    # parse track channels
     tracks = tracks[2:-2]
     for x in range(len(tracks)):
         line = tracks[x]
         if "drum" in line:
             if "drum" not in mogg_dict:
-                mogg_dict["drum"] = ""
-            mogg_dict["drum"] += f"{tracks[x+1][1:-1]} "
+                mogg_dict["drum"] = f"{tracks[x+1][1:-1]}"
+            else:
+                mogg_dict["drum"] += f" {tracks[x+1][1:-1]}"
         elif "bass" in line:
             mogg_dict["bass"] = f"{tracks[x+1][1:-1]}"
         elif "guitar" in line:
@@ -219,13 +215,36 @@ def pullMoggData(dta):
             mogg_dict["fake"] = f"{tracks[x+1][1:-1]}"
         elif "crowd" in line:
             mogg_dict["crowd"] = f"{tracks[x+1][1:-1]}"
-
-    mogg_dict["drum"] = mogg_dict["drum"].rstrip()
-    mogg_dict["pans"] = " ".join(str(x) for x in pan_values)
-    mogg_dict["vols"] = " ".join(str(x) for x in vol_values)
-
-    mogg_dict["guitar_tracks"] = [int(x) for x in mogg_dict["guitar"].split(" ")]
-    mogg_dict["total_tracks"] = len(pan_values)
+            
+    # create labels
+    labels = []
+    for inst in ["drum", "bass", "guitar", "vocals", "fake", "crowd"]:
+        if inst in mogg_dict:
+            label = "BACKING" if inst == "fake" else inst.upper()
+            labels.append(label.center(5*len([int(x) for x in mogg_dict[inst].split(' ')])))
+    mogg_dict["labels"] = ''.join(labels)
+    # parse pans
+    pan_values = [float(x) for x in pans[1][4:-1].split(" ")]
+    mogg_dict["pans"] = ""
+    for pan in pan_values:
+        mogg_dict["pans"] += f" {pan} " if pan >= 0.0 else f"{pan} "
+    mogg_dict["pans"] = mogg_dict["pans"][:-1]
+    # parse vols
+    vol_values = [float(x) for x in vols[1][4:-1].split(" ")]
+    mogg_dict["vols"] = ""
+    for vol in vol_values:
+        mogg_dict["vols"] += f" {vol} " if vol == 0.0 else f"{vol} "
+    mogg_dict["vols"] = mogg_dict["vols"][:-1]
+    # get cores
+    cores = [-1] * len(pan_values)
+    if "guitar" in mogg_dict:
+        guitar_tracks = [int(x) for x in mogg_dict["guitar"].split(" ")]
+        for n in guitar_tracks:
+            cores[n] = 1
+    mogg_dict["cores"] = ""
+    for core in cores:
+        mogg_dict["cores"] += f" {core}  " if core == -1 else f"  {core}  "
+    mogg_dict["cores"] = mogg_dict["cores"][:-1]
     
     return mogg_dict
     
@@ -255,16 +274,13 @@ def fill_dta_template(song_dict, mogg_dict, rbsong_dict, solo_array):
 #    print(rbsong_dict)
 #    print("\n\n\n")
     dta = []
-    dta.append(f"({song_dict['shortname']}")
-    dta.append(f"   (name \"{song_dict['name']}\")")
-    dta.append(f"   (artist \"{song_dict['artist']}\")")
+    dta.append(f"({song_dict['shortname']}\n   (name \"{song_dict['name']}\")\n   (artist \"{song_dict['artist']}\")")
     if song_dict["cover"] == 0:
         dta.append(f"   (master TRUE)")
     dta.append(f"   (song_id {song_dict['song_id']})")
     
     # song info - tracks, mixing, etc
-    dta.append(f"   (song")
-    dta.append(f"      (name \"songs/{song_dict['shortname']}/{song_dict['shortname']}\")")
+    dta.append(f"   (song\n      (name \"songs/{song_dict['shortname']}/{song_dict['shortname']}\")")
     dta.append(f"      (tracks\n         (")
     for inst in ["drum", "bass", "guitar", "vocals"]:
         if inst in mogg_dict:
@@ -274,23 +290,14 @@ def fill_dta_template(song_dict, mogg_dict, rbsong_dict, solo_array):
         dta.append(f"      (crowd_channels {mogg_dict['crowd']})")
     if song_dict["vocal_parts"] > 1:
         dta.append(f"      (vocal_parts {song_dict['vocal_parts']})")
-    dta.append(f"      (pans ({mogg_dict['pans']}))")
-    dta.append(f"      (vols ({mogg_dict['vols']}))")
-    cores = [-1] * mogg_dict["total_tracks"]
-    for n in mogg_dict["guitar_tracks"]:
-        cores[n] = 1
-    cores = " ".join(str(x) for x in cores)
-    dta.append(f"      (cores ({cores}))")
+    dta.append(f"      ;       {mogg_dict['labels']}")
+    dta.append(f"      (pans  ({mogg_dict['pans']}))\n      (vols  ({mogg_dict['vols']}))")
+    dta.append(f"      (cores ({mogg_dict['cores']}))")
     dta.append(f"      (drum_solo (seqs (kick.cue snare.cue tom1.cue tom2.cue crash.cue)))")
     dta.append(f"      (drum_freestyle (seqs (kick.cue snare.cue hat.cue ride.cue crash.cue)))\n   )")
     
     # vocal percussion and drum kit banks
-    if "cowbell" in rbsong_dict["Vocal Percussion Patch"]:
-        dta.append(f"   (bank sfx/cowbell_bank.milo)")
-    elif "handclap" in rbsong_dict["Vocal Percussion Patch"]:
-        dta.append(f"   (bank sfx/handclap_bank.milo)")
-    else:
-        dta.append(f"   (bank sfx/tambourine_bank.milo)")
+    dta.append(f"   (bank sfx/{rbsong_dict['Vocal Percussion Patch'].replace('fusion/patches/vox_perc_','').replace('.fusion','')}_bank.milo)")
     dta.append(f"   (drum_bank sfx/{rbsong_dict['Drum Kit Patch'].replace('fusion/patches/','')[:5]}_bank.milo)")
     dta.append(f"   (anim_tempo kTempo{rbsong_dict['Tempo'].capitalize()})")
     dta.append(f"   (song_scroll_speed {rbsong_dict['Vocal Track Scroll Duration Ms']})")
@@ -324,6 +331,20 @@ def fill_dta_template(song_dict, mogg_dict, rbsong_dict, solo_array):
     dta.append(f"   (album_art {'TRUE' if song_dict['album_art'] == 1 else 'FALSE'})")
     dta.append(f"   (album_name {song_dict['album_name']})")
     dta.append(f"   (album_track_number {song_dict['album_track_number']})")
+    
+    # if a special character is in either the song title or artist name, add latin1 encoding
+    latin_encoding = False
+    for character in song_dict["name"]:
+        if ord(character) > 127:
+            latin_encoding = True
+            break
+    for character in song_dict["artist"]:
+        if ord(character) > 127:
+            latin_encoding = True
+            break
+    if latin_encoding:
+        dta.append(f"   (encoding latin1)")
+    
     dta.append(f"   (vocal_tonic_note {rbsong_dict['Vocal Tonic Note']})")
     if rbsong_dict["Global Tuning Offset"] != "0.0":
         dta.append(f"   (tuning_offset_cents {rbsong_dict['Global Tuning Offset']})")
