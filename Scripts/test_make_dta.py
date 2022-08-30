@@ -172,65 +172,53 @@ def pullMetaData(anim):
     return metadata_dict
     
 def pullMoggData(dta):
-    tracks = []
-    pans = []
-    vols = []
-    which_arr = 0
-
     mogg_dict = {}
-
-    with open(dta, "r") as f:
-        while True:
-            line = f.readline().replace("\n","")
-            if not line:
-                break
-            else:
-                if "pans" in line:
-                    which_arr = 1
-                if "vols" in line:
-                    which_arr = 2
-                if which_arr == 0:
-                    tracks.append(line.lstrip())
-                elif which_arr == 1:
-                    pans.append(line)
-                else:
-                    vols.append(line)
-
-    # parse track channels
-    tracks = tracks[2:-2]
-    for x in range(len(tracks)):
-        line = tracks[x]
-        if "drum" in line:
+    
+    with open(dta, "r") as h:
+        doc = h.read()
+    doc = doc.replace("\n","").replace("\r","")
+    tp = doc.split("pans")
+    pv = tp[1].split("vols")
+    # doc = [ tracks, pans, vols ]
+    doc = [tp[0], pv[0], pv[1]]
+    # format tracks into a list
+    doc[0] = list(' '.join(doc[0].replace("(","").replace(")","").split()).split(" "))[1:]
+    
+    def get_channels(inst, index):
+        if inst == "drum":
             if "drum" not in mogg_dict:
-                mogg_dict["drum"] = f"{tracks[x+1][1:-1]}"
-            else:
-                mogg_dict["drum"] += f" {tracks[x+1][1:-1]}"
-        elif "bass" in line:
-            mogg_dict["bass"] = f"{tracks[x+1][1:-1]}"
-        elif "guitar" in line:
-            mogg_dict["guitar"] = f"{tracks[x+1][1:-1]}"
-        elif "vocals" in line:
-            mogg_dict["vocals"] = f"{tracks[x+1][1:-1]}"
-        elif "fake" in line:
-            mogg_dict["fake"] = f"{tracks[x+1][1:-1]}"
-        elif "crowd" in line:
-            mogg_dict["crowd"] = f"{tracks[x+1][1:-1]}"
-            
-    # create labels
+                mogg_dict[inst] = ""
+        else:
+            mogg_dict[inst] = ""
+        
+        while index < len(doc[0]) and doc[0][index].isdigit():
+            mogg_dict[inst] += f"{doc[0][index]} "
+            index += 1
+        
+        if inst != "drum":
+            mogg_dict[inst] = mogg_dict[inst].rstrip()
+    # insert track numbers into their respective instruments
+    for x in range(len(doc[0])):
+        if not doc[0][x].isdigit():
+            get_channels(doc[0][x], x+1)
+    mogg_dict["drum"] = mogg_dict["drum"].rstrip()
+    # get label for instruments
     labels = []
     for inst in ["drum", "bass", "guitar", "vocals", "fake", "crowd"]:
         if inst in mogg_dict:
             label = "BACKING" if inst == "fake" else inst.upper()
             labels.append(label.center(5*len([int(x) for x in mogg_dict[inst].split(' ')])))
     mogg_dict["labels"] = ''.join(labels)
-    # parse pans
-    pan_values = [float(x) for x in pans[1][4:-1].split(" ")]
+    # parse pan values
+    doc[1] = doc[1].replace("(","").replace(")","").strip()
+    pan_values = [float(x) for x in doc[1].split(" ")]
     mogg_dict["pans"] = ""
     for pan in pan_values:
         mogg_dict["pans"] += f" {pan} " if pan >= 0.0 else f"{pan} "
     mogg_dict["pans"] = mogg_dict["pans"][:-1]
-    # parse vols
-    vol_values = [float(x) for x in vols[1][4:-1].split(" ")]
+    # parse vol values
+    doc[2] = doc[2].replace("(","").replace(")","").strip()
+    vol_values = [float(x) for x in doc[2].split(" ")]
     mogg_dict["vols"] = ""
     for vol in vol_values:
         mogg_dict["vols"] += f" {vol} " if vol == 0.0 else f"{vol} "
@@ -246,6 +234,7 @@ def pullMoggData(dta):
         mogg_dict["cores"] += f" {core}  " if core == -1 else f"  {core}  "
     mogg_dict["cores"] = mogg_dict["cores"][:-1]
     
+#    print(mogg_dict)
     return mogg_dict
     
 def get_solos_from_midi(midi):
