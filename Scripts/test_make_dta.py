@@ -247,27 +247,17 @@ def pullMoggData(dta):
 #    print(mogg_dict)
     return mogg_dict
     
-def get_solos_from_midi(midi):
-    solo_array = [False, False, False, False] # guitar, drum, bass, vocal_percussion
+def get_vox_perc_from_midi(midi):
     mid = MidiFile(midi)
     for track in mid.tracks:
-#        print(track.name)
+        if "VOCALS" not in track.name:
+            continue
         for msg in track:
-            if "PART" in track.name and msg.type == "text":
-                if "_solo" in msg.text or "_start" in msg.text:
-#                    print(msg)
-                    if "DRUM" in track.name:
-                        solo_array[1] = True
-                    elif "BASS" in track.name:
-                        solo_array[2] = True
-                    elif "GUITAR" in track.name:
-                        solo_array[0] = True
-                    elif "VOCALS" in track.name:
-                        solo_array[3] = True
-
-    return solo_array
+            if msg.type == "text" and "_start" in msg.text:
+                return True
+    return False
     
-def fill_dta_template(song_dict, mogg_dict, rbsong_dict, solo_array):
+def fill_dta_template(song_dict, mogg_dict, rbsong_dict, vox_perc_bool):
 #    print(song_dict)
 #    print(mogg_dict)
 #    print(rbsong_dict)
@@ -295,25 +285,25 @@ def fill_dta_template(song_dict, mogg_dict, rbsong_dict, solo_array):
     dta.append(f"      (drum_solo (seqs (kick.cue snare.cue tom1.cue tom2.cue crash.cue)))")
     dta.append(f"      (drum_freestyle (seqs (kick.cue snare.cue hat.cue ride.cue crash.cue)))\n   )")
     
-    # vocal percussion and drum kit banks
+    # rbsong metadata
     dta.append(f"   (bank sfx/{rbsong_dict['Vocal Percussion Patch'].replace('fusion/patches/vox_perc_','').replace('.fusion','')}_bank.milo)")
     dta.append(f"   (drum_bank sfx/{rbsong_dict['Drum Kit Patch'].replace('fusion/patches/','')[:5]}_bank.milo)")
     dta.append(f"   (anim_tempo kTempo{rbsong_dict['Tempo'].capitalize()})")
     dta.append(f"   (song_scroll_speed {rbsong_dict['Vocal Track Scroll Duration Ms']})")
+    # remaining song metadata
     dta.append(f"   (preview {song_dict['preview_start']} {song_dict['preview_end']})")
     dta.append(f"   (song_length {song_dict['song_length']})")
     dta.append(f"   (rank")
     for inst in ["drum", "guitar", "bass", "vocals", "band"]:
         dta.append(f"      ({inst} {song_dict[inst]})")
     dta.append(f"   )")
-    
     # solo info
-    if song_dict["solos"] > 0 or solo_array[3]:
+    if song_dict["solos"] > 0 or vox_perc_bool:
         solos = ""
         for inst in ["guitar", "drum", "bass"]:
             if f"solo_{inst}" in song_dict:
                 solos += f"{inst} "
-        if solo_array[3]:
+        if vox_perc_bool:
             solos += "vocal_percussion"
         solos = solos.rstrip()
         dta.append(f"   (solo ({solos}))")
@@ -396,9 +386,9 @@ def main():
         print("mid error")
         exit()
         
-    midi_solo_array = get_solos_from_midi(midi_file[0])
+    vox_perc_bool = get_vox_perc_from_midi(midi_file[0])
     
-    dta_array = fill_dta_template(songdta, mogg_dta, rbsong, midi_solo_array)
+    dta_array = fill_dta_template(songdta, mogg_dta, rbsong, vox_perc_bool)
     
     with open("songs.dta", "w") as f:
         for line in dta_array:
