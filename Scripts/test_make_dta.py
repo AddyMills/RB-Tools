@@ -102,6 +102,16 @@ def grabSongData(songdta):
                 songsFile[x] = a
                 start += dataTypes[songDtaTypes[x]]
 #                print(x, a)
+    
+    solo_int = songsFile["solos"]
+    if solo_int > 0:
+        if (solo_int & 4):
+            songsFile["solo_bass"] = True
+        if (solo_int & 2):
+            songsFile["solo_guitar"] = True
+        if (solo_int & 1):
+            songsFile["solo_drum"] = True
+    
     return songsFile
     
 def pullString(anim, start):
@@ -298,14 +308,11 @@ def fill_dta_template(song_dict, mogg_dict, rbsong_dict, solo_array):
     dta.append(f"   )")
     
     # solo info
-    if any(solo_array):
+    if song_dict["solos"] > 0 or solo_array[3]:
         solos = ""
-        if solo_array[0]:
-            solos += "guitar "
-        if solo_array[1]:
-            solos += "drum "
-        if solo_array[2]:
-            solos += "bass "
+        for inst in ["guitar", "drum", "bass"]:
+            if f"solo_{inst}" in song_dict:
+                solos += f"{inst} "
         if solo_array[3]:
             solos += "vocal_percussion"
         solos = solos.rstrip()
