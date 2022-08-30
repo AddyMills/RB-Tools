@@ -191,8 +191,10 @@ def pullMoggData(dta):
     pv = tp[1].split("vols")
     # doc = [ tracks, pans, vols ]
     doc = [tp[0], pv[0], pv[1]]
-    # format tracks into a list
+    # format doc elements into their own parseable lists
     doc[0] = list(' '.join(doc[0].replace("(","").replace(")","").split()).split(" "))[1:]
+    doc[1] = doc[1].replace("(","").replace(")","").strip()
+    doc[2] = doc[2].replace("(","").replace(")","").strip()
     
     def get_channels(inst, index):
         if inst == "drum":
@@ -220,14 +222,12 @@ def pullMoggData(dta):
             labels.append(label.center(5*len([int(x) for x in mogg_dict[inst].split(' ')])))
     mogg_dict["labels"] = ''.join(labels)
     # parse pan values
-    doc[1] = doc[1].replace("(","").replace(")","").strip()
     pan_values = [float(x) for x in doc[1].split(" ")]
     mogg_dict["pans"] = ""
     for pan in pan_values:
         mogg_dict["pans"] += f" {pan} " if pan >= 0.0 else f"{pan} "
     mogg_dict["pans"] = mogg_dict["pans"][:-1]
     # parse vol values
-    doc[2] = doc[2].replace("(","").replace(")","").strip()
     vol_values = [float(x) for x in doc[2].split(" ")]
     mogg_dict["vols"] = ""
     for vol in vol_values:
