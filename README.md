@@ -98,4 +98,6 @@ This will convert the Free Bird voc file to RB2 lipsync while exaggerating the a
 
 ## Acknowledgements
 
-No code outside of my own was used. However, I would like to extend special thanks to Maxton and PikminGuts92 for having 010 templates available to figure these scripts out
+No code outside of my own was used in the Python scripts. However, DTXTool by maxton (with edits from InvoxiPlayGames) is used as a dependency for one of the scripts to make an RB3 song package. I would also like to extend special thanks to Maxton and PikminGuts92 for having 010 templates available to figure these scripts out
+
+DTXTool Repo Link: https://github.com/AddyMills/DtxCS (forked from InvoxiPlayGames who forked it from Maxton)

@@ -83,6 +83,17 @@ def grabSongData(songdta):
                     a = int(round(struct.unpack('<f',a)[0],0))
                 else:
                     a = int.from_bytes(a, 'little')
+                    if x == "solos":
+                        toBin = lambda number: format(number, 'b').zfill(8)
+                        a = toBin(a)
+                        solos = ""
+                        if a[7] == "1":
+                            solos += "drum "
+                        if a[6] == "1":
+                            solos += "guitar "
+                        if a[5] == "1":
+                            solos += "bass"
+                        a = solos
                 songsFile[x] = a
                 start += dataTypes[songDtaTypes[x]]
                 # print(x, a)

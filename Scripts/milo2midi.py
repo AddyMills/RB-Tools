@@ -188,8 +188,10 @@ def makeMidiTracks(mid, eventsDict, skip, combined, separate):
                 tname = tracks
             mid.add_track(name=tname)
             timeStart = 0
+            print(tracks)
             for y, x in enumerate(eventsDict[tracks]):
                 mapLower = secondsArray[secondsArray <= x.time].max()
+                print(x.time)
                 arrIndex = songSeconds.index(mapLower)
                 timeFromChange = x.time - songSeconds[arrIndex]
                 ticksFromChange = fns.s2t(timeFromChange, fns.tpb, songTempo[arrIndex])

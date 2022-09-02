@@ -132,3 +132,14 @@ def songArray(songMap):
 def toInt(x, lipdata=RB4):
     x = int.from_bytes(x, lipdata.endian)
     return x
+
+def lipsyncEvents(mid):
+    singalongs = []
+
+    time = 0
+    for x in mid:
+        time += x.time
+        if x.type == "note_on" or x.type == "note_off":
+            singalongs.append(cls.midiEvent(x.note, time, x.type))
+
+    return singalongs

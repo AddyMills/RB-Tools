@@ -5,6 +5,7 @@ import sys
 
 import common.classes as cls
 import common.functions as fns
+
 from mido import Message, MetaMessage, MidiFile, MidiTrack
 from mido import merge_tracks
 
@@ -394,7 +395,7 @@ def pullMetaData(anim):
         toAppend, start = pullString(anim, start)
         metadataEvents.append(toAppend.title().replace('_', " "))
         start += 4
-    metadataValues = []
+    metadataDict = {}
     for x in range(0, events):
         #print(metadataEvents[x], start)
         if metadataTypes[metadataEvents[x]] == "symbol" or metadataTypes[metadataEvents[x]] == "string":
@@ -402,38 +403,30 @@ def pullMetaData(anim):
             if metadataEvents[x] == 'Vocal Percussion Patch' or metadataEvents[x] == 'Band Fail Sound Event':
                 start += 1
             #print(toAppend)
-            metadataValues.append(toAppend)
+            metadataDict[metadataEvents[x]] = toAppend
         elif metadataTypes[metadataEvents[x]] == "enum":
             enumArray = bytearray()
             for y in range(0,8):
                 enumArray.append(anim[start])
                 start += 1
-            metadataValues.append(int.from_bytes(enumArray, console.endian))
+            metadataDict[metadataEvents[x]] = int.from_bytes(enumArray, console.endian)
         elif metadataTypes[metadataEvents[x]] == "float":
             floatArray = bytearray()
             for y in range(0,4):
                 floatArray.append(anim[start])
                 start += 1
-            metadataValues.append(struct.unpack('f', floatArray)[0])
+            metadataDict[metadataEvents[x]] = struct.unpack('f', floatArray)[0]
         elif metadataTypes[metadataEvents[x]] == "int":
             intArray = bytearray()
             for y in range(0,4):
                 intArray.append(anim[start])
                 start += 1
-            metadataValues.append(int.from_bytes(intArray, console.endian))
-    with open(os.path.splitext(sys.argv[1])[0] + "_metadata.txt", "w") as f:
-        for x in range(0, events):
-            if metadataEvents[x] == "Drum Kit Patch":
-                kitNumber = metadataValues[x][-12:]
-                f.write(f'{metadataEvents[x]}: {metadataValues[x]} ({kitTypes[kitNumber[:5]]})\n')
-            else:
-                f.write(f'{metadataEvents[x]}: {metadataValues[x]}\n')
-    #print(metadataValues)
-    #print(start)
-    return
+            metadataDict[metadataEvents[x]] = int.from_bytes(intArray, console.endian)
+
+    return metadataDict
 
 
-def main(anim, mid, output, oneVenue):
+def main(anim, mid, oneVenue = True, rb4PP = False):
     beat = grabBeatTrack(mid)
     start = 0
     eventTotal = anim.count(b'driven_prop')
@@ -444,7 +437,7 @@ def main(anim, mid, output, oneVenue):
         # print(eventsName)
         eventsDict[eventsName] = events
     mid = parseData(eventsDict, mid, oneVenue)
-    mid.save(filename=f'{output}_venue.mid')
+    return mid
 
 
 if __name__ == "__main__":
@@ -457,11 +450,18 @@ if __name__ == "__main__":
     if sys.argv[1].endswith(".rbsong"):
         with open(sys.argv[1], "rb") as f:
             anim = f.read()
-        try:
-            pullMetaData(anim)
+        #try:
+        metadata = pullMetaData(anim)
+        with open(os.path.splitext(sys.argv[1])[0] + "_metadata.txt", "w") as f:
+            for x in metadata:
+                if x == "Drum Kit Patch":
+                    kitNumber = metadata[x][-12:]
+                    f.write(f'{x}: {metadata[x]} ({kitTypes[kitNumber[:5]]})\n')
+                else:
+                    f.write(f'{x}: {metadata[x]}\n')
             print("Extracted metadata")
-        except:
-            print("Metadata failed to extract")
+        """except:
+            print("Metadata failed to extract")"""
         try:
             mid = MidiFile(os.path.splitext(sys.argv[1])[0] + '.mid')
         except:
@@ -472,6 +472,7 @@ if __name__ == "__main__":
         print("No rbsong file found.")
         input("Press any key to exit")
         exit()
+    exit()
     output = os.path.splitext(sys.argv[1])[0]
     if 'rb4' in sys.argv:
         rb4PP = True
@@ -481,4 +482,5 @@ if __name__ == "__main__":
         oneVenue = False
     else:
         oneVenue = True
-    main(anim, mid, output, oneVenue)
+    mid = main(anim, mid, oneVenue, rb4PP)
+    mid.save(filename=f'{output}_venue.mid')

@@ -5,6 +5,7 @@ import struct
 import common.classes as cls
 import common.functions as fns
 
+
 singalongNames = ("Bass_singalong",
                   "Drum_singalong",
                   "Guitar_singalong",
@@ -273,7 +274,7 @@ def main_lipsync_new(lipsync):
         venueTracks.append(newTrack)
     singalongMidi.tracks.append(fns.merge_tracks(venueTracks))
     singalongMidi.tracks[-1].name = "Singalongs"
-    singalongMidi.save(filename="Singalongs.mid")
+
     # print(singalongMidi.tracks)
 
     for i, lips in enumerate(lipsyncVals):
@@ -289,11 +290,8 @@ def main_lipsync_new(lipsync):
         lipsyncVals[i] = fns.genRB2LipData(header, visemeHeader)
     # print(testLipsync)
     # print(lipSingalongs)
-    for y, x in enumerate(lipParts):
-        with open(f"{y}-Part_{x}.lipsync", "wb") as g:
-            g.write(lipsyncVals[y])
 
-    return
+    return lipParts, lipsyncVals, singalongMidi
 
 
 def main_rbsong(filename):
@@ -308,10 +306,8 @@ def main_rbsong(filename):
             lipsyncData = getLipData(s, parts[x], RB4)
             lipdataSep.append(fns.genRB2LipData(header, lipsyncData))
 
-    for x in range(0, len(lipdataSep)):
-        lipSave = "{0}_part{1}.lipsync".format(os.path.splitext(filename)[0], x + 1)
-        with open(lipSave, "wb") as lipFile:
-            lipFile.write(lipdataSep[x])
+    return(lipdataSep)
+
 
 
 if __name__ == '__main__':
@@ -322,13 +318,19 @@ if __name__ == '__main__':
     filename = sys.argv[1]
 
     if os.path.splitext(filename)[1] != ".rbsong":
-        if os.path.splitext(filename)[1] != ".lipsync_ps4":
-            if os.path.splitext(filename)[1] != ".lipsync_pc":
-                print("Invalid file found. Please use an \".rbsong\" file as an argument when running the script.")
-                exit()
-            else:
-                main_lipsync_new(filename)
+        if os.path.splitext(filename)[1] != ".lipsync_ps4" and os.path.splitext(filename)[1] != ".lipsync_pc":
+            print("Invalid file found. Please use an \".rbsong\" file as an argument when running the script.")
+            exit()
         else:
-            main_lipsync_new(filename)
+            lipParts, lipsyncVals, singalongMidi = main_lipsync_new(filename)
+            for y, x in enumerate(lipParts):
+                with open(f"{y}-Part_{x}.lipsync", "wb") as g:
+                    g.write(lipsyncVals[y])
+            singalongMidi.save(filename="Singalongs.mid")
     else:
-        main_rbsong(filename)
+        lipdataSep = main_rbsong(filename)
+
+        for x in range(0, len(lipdataSep)):
+            lipSave = "{0}_part{1}.lipsync".format(os.path.splitext(filename)[0], x + 1)
+            with open(lipSave, "wb") as lipFile:
+                lipFile.write(lipdataSep[x])
