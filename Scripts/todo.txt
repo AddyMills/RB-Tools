@@ -1,0 +1,5 @@
+-clean up a midi by:
+	- merging singalongs and crowd/venue/stagekit_fog events
+	- replacing all instances of [idle_mellow] with [idle]
+	- removing [preview] from EVENTS, and [none] from VENUE
+	- removing MARKUP, VR EVENTS, other tracks that don't play nice with RB3
