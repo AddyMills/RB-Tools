@@ -472,7 +472,6 @@ if __name__ == "__main__":
         print("No rbsong file found.")
         input("Press any key to exit")
         exit()
-    exit()
     output = os.path.splitext(sys.argv[1])[0]
     if 'rb4' in sys.argv:
         rb4PP = True
