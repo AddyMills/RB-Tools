@@ -185,17 +185,20 @@ def pullMoggData(dta):
     mogg_dict = {}
     
     with open(dta, "r") as h:
-        doc = h.read()
-    doc = doc.replace("\n","").replace("\r","")
+        doc = [line.replace("\n","").replace("\r","") for line in h]
+    # remove comments
+    doc = [x for x in doc if ";" not in x and x != ""]
+    # convert this list into a string
+    doc = " ".join(doc)
     tp = doc.split("pans")
     pv = tp[1].split("vols")
     # doc = [ tracks, pans, vols ]
     doc = [tp[0], pv[0], pv[1]]
     # format doc elements into their own parseable lists
     doc[0] = list(' '.join(doc[0].replace("(","").replace(")","").split()).split(" "))[1:]
-    doc[1] = doc[1].replace("(","").replace(")","").strip()
-    doc[2] = doc[2].replace("(","").replace(")","").strip()
-    
+    doc[1] = ' '.join(doc[1].replace("(","").replace(")","").strip().split())
+    doc[2] = ' '.join(doc[2].replace("(","").replace(")","").strip().split())
+
     def get_channels(inst, index):
         if inst == "drum":
             if "drum" not in mogg_dict:
@@ -213,7 +216,8 @@ def pullMoggData(dta):
     for x in range(len(doc[0])):
         if not doc[0][x].isdigit():
             get_channels(doc[0][x], x+1)
-    mogg_dict["drum"] = mogg_dict["drum"].rstrip()
+    if "drum" in mogg_dict:
+        mogg_dict["drum"] = mogg_dict["drum"].rstrip()
     # get label for instruments
     labels = []
     for inst in ["drum", "bass", "guitar", "vocals", "fake", "crowd"]:
@@ -315,7 +319,7 @@ def fill_dta_template(song_dict, mogg_dict, rbsong_dict, vox_perc_bool):
     if song_dict["album_year"] != song_dict["original_year"]:
         dta.append(f"   (year_recorded {song_dict['year']})")
     dta.append(f"   (album_art {'TRUE' if song_dict['album_art'] == 1 else 'FALSE'})")
-    dta.append(f"   (album_name {song_dict['album_name']})")
+    dta.append(f"   (album_name \"{song_dict['album_name']}\")")
     dta.append(f"   (album_track_number {song_dict['album_track_number']})")
     
     # if a special character is in either the song title or artist name, add latin1 encoding
