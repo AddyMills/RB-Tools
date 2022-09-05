@@ -237,6 +237,8 @@ def parseData(eventsDict, mid, oneVenue):
                 tempTrack = MidiTrack()
                 prevType = 'note_off'
                 for y, x in enumerate(eventsDict[tracks]):
+                    if x.event == 'none':
+                        continue
                     timeVal = x.time - timeStart
                     noteVal = 0
                     if tracks.endswith('_sing') or tracks.startswith('spot_'):
@@ -273,8 +275,9 @@ def parseData(eventsDict, mid, oneVenue):
                                 tempTrack.append(Message('note_on', note=noteVal, velocity=100, time=timeVal))
                             prevType = 'note_on'
                         elif x.event.endswith('off'):
-                            tempTrack.append(Message('note_off', note=noteVal, velocity=0, time=timeVal))
-                            prevType = 'note_off'
+                            if timeVal != 0:
+                                tempTrack.append(Message('note_off', note=noteVal, velocity=0, time=timeVal))
+                                prevType = 'note_off'
                         else:
                             print(f"Unknown state event found at {x.time}")
                             exit()
@@ -334,7 +337,31 @@ def parseData(eventsDict, mid, oneVenue):
                         textEvent = f'[{x.event}]'
                     mid.tracks[-1].append(MetaMessage('text', text=textEvent, time=timeVal))
                     timeStart = x.time
-    return mid
+    # Remove bullshit events from RB4 MIDI
+    newMid = MidiFile()
+    for y, x in enumerate(mid.tracks):
+        if y == 0:
+            newMid.add_track()
+            newMid.tracks[-1] = x
+        elif x.name != "EVENTS":
+            newMid.add_track()
+            if x.name == "VENUE":
+                for z in x:
+                    print(z)
+            newMid.tracks[-1] = fns.unmellow(x)
+        else:
+            newMid.add_track()
+            # Credit to rjkiv for the below snippet
+            event_msgs = [msg.dict() for msg in x]
+            for i in range(len(event_msgs)):
+                if "text" in event_msgs[i] and "preview" in event_msgs[i]["text"]:
+                    event_msgs[i + 1]["time"] += event_msgs[i]["time"]
+                    event_msgs.pop(i)
+                    break
+            for msg in event_msgs:
+                newMid.tracks[-1].append(MetaMessage.from_dict(msg))
+    print(newMid.tracks)
+    return newMid
 
 
 def grabBeatTrack(mid):
