@@ -3,6 +3,9 @@ Various Tools to work with Rock Band files. Written using Python 3.9. Dependenci
 
 Please note, you need all files in the repo for it to work properly. All of the scripts rely on the Python files found in the "common" folder.
 
+## Create Song Package
+
+Uses various elements of this repository (and DTXTool) to create a song package for converting to RB3 or RB2. Currently creates a songs.dta file with all the data from the RB4 song and converts the MIDI from an rbmid to mid.
 
 ## Lipsync Converter
 
@@ -98,6 +101,6 @@ This will convert the Free Bird voc file to RB2 lipsync while exaggerating the a
 
 ## Acknowledgements
 
-No code outside of my own was used in the Python scripts. However, DTXTool by maxton (with edits from InvoxiPlayGames) is used as a dependency for one of the scripts to make an RB3 song package. I would also like to extend special thanks to Maxton and PikminGuts92 for having 010 templates available to figure these scripts out
+Most of the code used in the Python scripts is my own with contributions from rjkiv. DTXTool by maxton (with edits from InvoxiPlayGames) is also used as a dependency for one of the scripts to make an RB3 song package. I would also like to extend special thanks to Maxton and PikminGuts92 for having 010 templates available to figure these scripts out
 
 DTXTool Repo Link: https://github.com/AddyMills/DtxCS (forked from InvoxiPlayGames who forked it from Maxton)
