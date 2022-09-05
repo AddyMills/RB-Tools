@@ -5,6 +5,8 @@ import time
 import subprocess
 import shutil
 import Lipsync_Converter_RB4 as lipsync_conv
+import numpy as np
+import common.functions as fns
 
 from songdta2txt import grabSongData
 from rbsong2midi import pullMetaData
@@ -308,6 +310,7 @@ while True:
         if forgetool == "":
             exit()
 
+singalongPart = False
 #Add converting lipsync!
 try:
     lipParts, lipsyncVals, singalong = lipsync_conv.main_lipsync_new(f"{song}\\{filename}.lipsync_ps4")
@@ -315,7 +318,7 @@ try:
     "guitar": 0,
     "bass": 0,
     "mic": 0}
-
+    singalongPart = True
     #print(lipParts)
     for x in lipParts:
         for key in instruments:
@@ -324,9 +327,7 @@ try:
     for y, x in enumerate(lipParts):
         with open(f"{os.path.dirname(sys.argv[0])}\\{packageName}\\{filename}\\lipsync\\{y}-Part_{x}.lipsync", "wb") as g:
             g.write(lipsyncVals[y])
-    #for x in singalong:
-    #    print(x)
-    singalong.save(filename=f"{os.path.dirname(sys.argv[0])}\\{packageName}\\{filename}\\lipsync\\Singalongs.mid")
+    # singalong.save(filename=f"{os.path.dirname(sys.argv[0])}\\{packageName}\\{filename}\\lipsync\\Singalongs.mid")
     #print(instruments)
     #print(len(lipsyncVals[0]),len(lipsyncVals[1]),len(lipsyncVals[2]),len(lipsyncVals[3]))
 except:
@@ -364,6 +365,27 @@ try:
                 newMid.tracks[-1] = x
         elif x.name == "stagekit_fog":
             toMerge.append(x.copy())
+    if singalongPart == True:
+        ##############################
+        # Merge Singalong data with Venue track
+        songMap = fns.midiProcessing(mid)
+        songTime, songSeconds, songTempo, songAvgTempo = fns.songArray(songMap)
+        secondsArray = np.array(songSeconds)
+        timeStart = 0
+        singalongTrack = mido.MidiTrack()
+        for x in singalong:
+            mapLower = secondsArray[secondsArray <= x.time].max()
+            # print(x.time)
+            arrIndex = songSeconds.index(mapLower)
+            timeFromChange = x.time - songSeconds[arrIndex]
+            ticksFromChange = fns.s2t(timeFromChange, fns.tpb, songTempo[arrIndex])
+            timeVal = songTime[arrIndex] + round(ticksFromChange) - timeStart
+            if x.type == "note_on":
+                singalongTrack.append(fns.Message("note_on", note=x.note, velocity=100, time=timeVal))
+            if x.type == "note_off":
+                singalongTrack.append(fns.Message("note_off", note=x.note, velocity=0, time=timeVal))
+        toMerge.append(singalongTrack)
+        ##############################
     newTrack = mido.merge_tracks(toMerge)
     newMid.add_track()
     newMid.tracks[-1] = newTrack.copy()
@@ -371,6 +393,11 @@ try:
     newMid.save(filename=saveMid)
 except Exception as e:
    print(e)
+
+try:
+    shutil.rmtree(f'{song}\\{packageName}')
+except Exception as e:
+   pass
 
 shutil.move(f"{os.path.dirname(sys.argv[0])}\\{packageName}", f'{song}')
 
