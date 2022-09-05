@@ -345,9 +345,6 @@ def parseData(eventsDict, mid, oneVenue):
             newMid.tracks[-1] = x
         elif x.name != "EVENTS":
             newMid.add_track()
-            if x.name == "VENUE":
-                for z in x:
-                    print(z)
             newMid.tracks[-1] = fns.unmellow(x)
         else:
             newMid.add_track()
@@ -360,7 +357,7 @@ def parseData(eventsDict, mid, oneVenue):
                     break
             for msg in event_msgs:
                 newMid.tracks[-1].append(MetaMessage.from_dict(msg))
-    print(newMid.tracks)
+    # print(newMid.tracks)
     return newMid
 
 

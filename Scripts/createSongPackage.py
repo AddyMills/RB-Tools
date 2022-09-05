@@ -324,6 +324,8 @@ try:
     for y, x in enumerate(lipParts):
         with open(f"{os.path.dirname(sys.argv[0])}\\{packageName}\\{filename}\\lipsync\\{y}-Part_{x}.lipsync", "wb") as g:
             g.write(lipsyncVals[y])
+    #for x in singalong:
+    #    print(x)
     singalong.save(filename=f"{os.path.dirname(sys.argv[0])}\\{packageName}\\{filename}\\lipsync\\Singalongs.mid")
     #print(instruments)
     #print(len(lipsyncVals[0]),len(lipsyncVals[1]),len(lipsyncVals[2]),len(lipsyncVals[3]))
