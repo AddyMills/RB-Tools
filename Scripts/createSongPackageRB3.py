@@ -104,6 +104,15 @@ masterdict["rating"] = 4
 masterdict['guide_pitch_volume'] = -3.00
 masterdict['encoding'] = 'latin1'
 
+for x in ["pans", "vols"]:
+    temp = masterdict[x].split(' ')
+    for z, y in enumerate(temp):
+        temp[z] = str(round(float(y), 2))
+        if len(temp[z]) != 4:
+            temp[z] = " "+temp[z]
+    temp = " ".join(temp)
+    masterdict[x] = temp
+
 if "other" in subgenres[masterdict["genre"]]:
     masterdict["sub_genre"] = "subgenre_other"
 else:
