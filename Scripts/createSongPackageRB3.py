@@ -226,6 +226,8 @@ with open(f"{os.path.dirname(sys.argv[0])}\\{packageName}\\songs.dta", "w") as f
     f.write(f"{sp(2)})\n")
 
     f.write(f"{sp(2)}(\'vocal_parts\' {masterdict['vocal_parts']})\n")
+    if masterdict['crowd']:
+        f.write(f"{sp(2)}(crowd_channels {masterdict['crowd']})\n")
 
     f.write(f"{sp(2)}(\n")
     f.write(f"{sp(3)}\'drum_solo\'\n")
