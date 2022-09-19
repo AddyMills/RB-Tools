@@ -167,7 +167,7 @@ with open(f"{os.path.dirname(sys.argv[0])}\\{packageName}\\songs.dta", "w") as f
 
     f.write(f"{sp(1)}(")
     f.write(f"artist ")
-    f.write(f"{masterdict['artist']}\")\n")
+    f.write(f"\"{masterdict['artist']}\")\n")
 
     f.write(f"{sp(1)}(master {1 if masterdict['cover'] == 0 else 0})\n")
     f.write(f"{sp(1)}(context 2000)\n")
@@ -188,7 +188,7 @@ with open(f"{os.path.dirname(sys.argv[0])}\\{packageName}\\songs.dta", "w") as f
                 f.write(f"{openb(0)}")
             else:
                 f.write(f" {openb(3)}")
-            f.write(f"{x}")
+            f.write(f"{x} ")
             f.write(f"({masterdict[x]})")
             f.write(f"{closeb(0)}\n")
 
@@ -283,6 +283,8 @@ with open(f"{os.path.dirname(sys.argv[0])}\\{packageName}\\songs.dta", "w") as f
                     f.write(f"{sp(1)}({x} {masterdict[x]})\n")
             else:
                 f.write(f"{sp(1)}({x} {masterdict[x]})\n")
+        elif x == "vocal_gender":
+            f.write(f"{sp(1)}({x} {'male' if masterdict['vocal_gender'] == 1 else 'female'})\n")
         elif x == "album_art":
             f.write(f"{sp(1)}({x} TRUE)\n")
         else:
@@ -418,5 +420,3 @@ except Exception as e:
 shutil.move(f"{os.path.dirname(sys.argv[0])}\\{packageName}", f'{song}')
 
 shutil.copy(f"{song}\\{filename}.mogg", f'{song}\\{packageName}\\{filename}\\{filename}.mogg')
-
-os.mkdir(f"{os.path.dirname(sys.argv[0])}\\{packageName}")

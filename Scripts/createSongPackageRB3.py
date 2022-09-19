@@ -137,7 +137,7 @@ f.write(f"{sp(3)}\"{masterdict['yyy']}\"\n")
 f.write(f"{sp(2)})\n")"""
 
 # os.mkdir(f'{song}\\{packageName}')
-packageName = "RBpkg"
+packageName = "RB3pkg"
 try:
     os.mkdir(f"{os.path.dirname(sys.argv[0])}\\{packageName}")
 except:
@@ -286,6 +286,10 @@ with open(f"{os.path.dirname(sys.argv[0])}\\{packageName}\\songs.dta", "w") as f
                     f.write(f"{sp(1)}(\'{x}\' {masterdict[x]})\n")
             else:
                 f.write(f"{sp(1)}(\'{x}\' {masterdict[x]})\n")
+        elif x == "vocal_gender":
+            f.write(f"{sp(1)}({x} {'male' if masterdict['vocal_gender'] == 1 else 'female'})\n")
+        elif x == "album_art":
+            f.write(f"{sp(1)}({x} TRUE)\n")
         else:
             if type(masterdict[x]) == int or type(masterdict[x]) == float:
                 f.write(f"{sp(1)}(\'{x}\' {masterdict[x]})\n")
@@ -413,5 +417,3 @@ except Exception as e:
 shutil.move(f"{os.path.dirname(sys.argv[0])}\\{packageName}", f'{song}')
 
 shutil.copy(f"{song}\\{filename}.mogg", f'{song}\\{packageName}\\{filename}\\{filename}.mogg')
-
-os.mkdir(f"{os.path.dirname(sys.argv[0])}\\{packageName}")
