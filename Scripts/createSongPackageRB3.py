@@ -7,7 +7,7 @@ import shutil
 import Lipsync_Converter_RB4 as lipsync_conv
 import numpy as np
 import common.functions as fns
-
+from mido import MetaMessage
 from songdta2txt import grabSongData
 from rbsong2midi import pullMetaData
 from rbsong2midi import main as mergeVenue
@@ -402,6 +402,10 @@ try:
         toMerge.append(singalongTrack)
         ##############################
     newTrack = mido.merge_tracks(toMerge)
+    try:
+        newTrack.remove(MetaMessage('track_name', name='stagekit_fog'))
+    except:
+        pass
     newMid.add_track()
     newMid.tracks[-1] = newTrack.copy()
     os.remove(saveMid)
