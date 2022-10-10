@@ -5,6 +5,7 @@ import sys
 
 import common.classes as cls
 import common.functions as fns
+
 from mido import Message, MetaMessage, MidiFile, MidiTrack
 from mido import merge_tracks
 
@@ -236,6 +237,8 @@ def parseData(eventsDict, mid, oneVenue):
                 tempTrack = MidiTrack()
                 prevType = 'note_off'
                 for y, x in enumerate(eventsDict[tracks]):
+                    if x.event == 'none':
+                        continue
                     timeVal = x.time - timeStart
                     noteVal = 0
                     if tracks.endswith('_sing') or tracks.startswith('spot_'):
@@ -272,8 +275,9 @@ def parseData(eventsDict, mid, oneVenue):
                                 tempTrack.append(Message('note_on', note=noteVal, velocity=100, time=timeVal))
                             prevType = 'note_on'
                         elif x.event.endswith('off'):
-                            tempTrack.append(Message('note_off', note=noteVal, velocity=0, time=timeVal))
-                            prevType = 'note_off'
+                            if timeVal != 0:
+                                tempTrack.append(Message('note_off', note=noteVal, velocity=0, time=timeVal))
+                                prevType = 'note_off'
                         else:
                             print(f"Unknown state event found at {x.time}")
                             exit()
@@ -333,7 +337,28 @@ def parseData(eventsDict, mid, oneVenue):
                         textEvent = f'[{x.event}]'
                     mid.tracks[-1].append(MetaMessage('text', text=textEvent, time=timeVal))
                     timeStart = x.time
-    return mid
+    # Remove bullshit events from RB4 MIDI
+    newMid = MidiFile()
+    for y, x in enumerate(mid.tracks):
+        if y == 0:
+            newMid.add_track()
+            newMid.tracks[-1] = x
+        elif x.name != "EVENTS":
+            newMid.add_track()
+            newMid.tracks[-1] = fns.unmellow(x)
+        else:
+            newMid.add_track()
+            # Credit to rjkiv for the below snippet
+            event_msgs = [msg.dict() for msg in x]
+            for i in range(len(event_msgs)):
+                if "text" in event_msgs[i] and "preview" in event_msgs[i]["text"]:
+                    event_msgs[i + 1]["time"] += event_msgs[i]["time"]
+                    event_msgs.pop(i)
+                    break
+            for msg in event_msgs:
+                newMid.tracks[-1].append(MetaMessage.from_dict(msg))
+    # print(newMid.tracks)
+    return newMid
 
 
 def grabBeatTrack(mid):
@@ -394,7 +419,7 @@ def pullMetaData(anim):
         toAppend, start = pullString(anim, start)
         metadataEvents.append(toAppend.title().replace('_', " "))
         start += 4
-    metadataValues = []
+    metadataDict = {}
     for x in range(0, events):
         #print(metadataEvents[x], start)
         if metadataTypes[metadataEvents[x]] == "symbol" or metadataTypes[metadataEvents[x]] == "string":
@@ -402,38 +427,30 @@ def pullMetaData(anim):
             if metadataEvents[x] == 'Vocal Percussion Patch' or metadataEvents[x] == 'Band Fail Sound Event':
                 start += 1
             #print(toAppend)
-            metadataValues.append(toAppend)
+            metadataDict[metadataEvents[x]] = toAppend
         elif metadataTypes[metadataEvents[x]] == "enum":
             enumArray = bytearray()
             for y in range(0,8):
                 enumArray.append(anim[start])
                 start += 1
-            metadataValues.append(int.from_bytes(enumArray, console.endian))
+            metadataDict[metadataEvents[x]] = int.from_bytes(enumArray, console.endian)
         elif metadataTypes[metadataEvents[x]] == "float":
             floatArray = bytearray()
             for y in range(0,4):
                 floatArray.append(anim[start])
                 start += 1
-            metadataValues.append(struct.unpack('f', floatArray)[0])
+            metadataDict[metadataEvents[x]] = struct.unpack('f', floatArray)[0]
         elif metadataTypes[metadataEvents[x]] == "int":
             intArray = bytearray()
             for y in range(0,4):
                 intArray.append(anim[start])
                 start += 1
-            metadataValues.append(int.from_bytes(intArray, console.endian))
-    with open(os.path.splitext(sys.argv[1])[0] + "_metadata.txt", "w") as f:
-        for x in range(0, events):
-            if metadataEvents[x] == "Drum Kit Patch":
-                kitNumber = metadataValues[x][-12:]
-                f.write(f'{metadataEvents[x]}: {metadataValues[x]} ({kitTypes[kitNumber[:5]]})\n')
-            else:
-                f.write(f'{metadataEvents[x]}: {metadataValues[x]}\n')
-    #print(metadataValues)
-    #print(start)
-    return
+            metadataDict[metadataEvents[x]] = int.from_bytes(intArray, console.endian)
+
+    return metadataDict
 
 
-def main(anim, mid, output, oneVenue):
+def main(anim, mid, oneVenue = True, rb4PP = False):
     beat = grabBeatTrack(mid)
     start = 0
     eventTotal = anim.count(b'driven_prop')
@@ -444,7 +461,7 @@ def main(anim, mid, output, oneVenue):
         # print(eventsName)
         eventsDict[eventsName] = events
     mid = parseData(eventsDict, mid, oneVenue)
-    mid.save(filename=f'{output}_venue.mid')
+    return mid
 
 
 if __name__ == "__main__":
@@ -457,11 +474,18 @@ if __name__ == "__main__":
     if sys.argv[1].endswith(".rbsong"):
         with open(sys.argv[1], "rb") as f:
             anim = f.read()
-        try:
-            pullMetaData(anim)
+        #try:
+        metadata = pullMetaData(anim)
+        with open(os.path.splitext(sys.argv[1])[0] + "_metadata.txt", "w") as f:
+            for x in metadata:
+                if x == "Drum Kit Patch":
+                    kitNumber = metadata[x][-12:]
+                    f.write(f'{x}: {metadata[x]} ({kitTypes[kitNumber[:5]]})\n')
+                else:
+                    f.write(f'{x}: {metadata[x]}\n')
             print("Extracted metadata")
-        except:
-            print("Metadata failed to extract")
+        """except:
+            print("Metadata failed to extract")"""
         try:
             mid = MidiFile(os.path.splitext(sys.argv[1])[0] + '.mid')
         except:
@@ -481,4 +505,5 @@ if __name__ == "__main__":
         oneVenue = False
     else:
         oneVenue = True
-    main(anim, mid, output, oneVenue)
+    mid = main(anim, mid, oneVenue, rb4PP)
+    mid.save(filename=f'{output}_venue.mid')

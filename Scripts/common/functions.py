@@ -132,3 +132,28 @@ def songArray(songMap):
 def toInt(x, lipdata=RB4):
     x = int.from_bytes(x, lipdata.endian)
     return x
+
+def lipsyncEvents(mid):
+    singalongs = []
+
+    time = 0
+    for x in mid:
+        time += x.time
+        if x.type == "note_on" or x.type == "note_off":
+            singalongs.append(cls.midiEvent(x.note, time, x.type))
+
+    return singalongs
+
+def unmellow(track):
+    # Credit to rjkiv for this function
+    msg_list = [msg.dict() for msg in track]
+    for i in range(len(msg_list)):
+        if "text" in msg_list[i] and "idle_mellow" in msg_list[i]["text"]:
+            msg_list[i]["text"] = "[idle]"
+    new_track = MidiTrack()
+    for msg in msg_list:
+        if "note" in msg["type"]:
+            new_track.append(Message.from_dict(msg))
+        else:
+            new_track.append(MetaMessage.from_dict(msg))
+    return new_track

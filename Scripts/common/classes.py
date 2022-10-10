@@ -41,3 +41,9 @@ class venueItem:
     def __init__(self, time, event):
         self.time = time
         self.event = event
+
+class midiEvent:
+    def __init__(self, note, event, time):
+        self.time = time
+        self.event = event
+        self.note = note
