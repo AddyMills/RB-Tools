@@ -221,6 +221,22 @@ def pullData(anim, start, beat, origPP):
     # print(animName)
     return eventsList, animName, start
 
+def update_text_event(textEvent):
+    if textEvent.startswith('band'):
+        textEvent = f'coop{textEvent[4:]}'
+    if textEvent.endswith('crowd') and not textEvent.startswith('directed'):
+        textEvent = textEvent[:-5] + 'behind'
+    if textEvent.endswith('near_head'):
+        if textEvent[:7] == 'coop_v_':
+            textEvent = textEvent[:-9] + 'closeup'
+        else:
+            textEvent = textEvent[:-9] + 'closeup_head'
+    if textEvent.endswith('near_hand'):
+        if textEvent[:7] == 'coop_v_':
+            textEvent = textEvent[:-9] + 'closeup'
+        else:
+            textEvent = textEvent[:-9] + 'closeup_hand'
+    return textEvent
 
 def parseData(eventsDict, mid, oneVenue):
     if oneVenue:
@@ -294,22 +310,7 @@ def parseData(eventsDict, mid, oneVenue):
                                 if textEvent not in legalProcs:
                                     textEvent = '[ProFilm_a.pp]'
                         else:
-                            textEvent = x.event
-                            if textEvent.startswith('band'):
-                                textEvent = f'coop{textEvent[4:]}'
-                            if textEvent.endswith('crowd') and not textEvent.startswith('directed'):
-                                textEvent = textEvent[:-5] + 'behind'
-                            if textEvent.endswith('near_head'):
-                                if textEvent[:7] == 'coop_v_':
-                                    textEvent = textEvent[:-9] + 'closeup'
-                                else:
-                                    textEvent = textEvent[:-9] + 'closeup_head'
-                            if textEvent.endswith('near_hand'):
-                                if textEvent[:7] == 'coop_v_':
-                                    textEvent = textEvent[:-9] + 'closeup'
-                                else:
-                                    textEvent = textEvent[:-9] + 'closeup_hand'
-                            textEvent = f'[{textEvent}]'
+                            textEvent = f'[{update_text_event(x.event)}]'
                         tempTrack.append(MetaMessage('text', text=textEvent, time=timeVal))
                     timeStart = x.time
                 toMerge.append(tempTrack)
@@ -334,7 +335,7 @@ def parseData(eventsDict, mid, oneVenue):
                     elif tracks == 'postproc':
                         textEvent = f'[{x.event}.pp]'
                     else:
-                        textEvent = f'[{x.event}]'
+                        textEvent = f'[{update_text_event(x.event)}]'
                     mid.tracks[-1].append(MetaMessage('text', text=textEvent, time=timeVal))
                     timeStart = x.time
     # Remove bullshit events from RB4 MIDI
