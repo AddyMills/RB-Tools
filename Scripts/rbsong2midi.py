@@ -498,11 +498,11 @@ if __name__ == "__main__":
         input("Press any key to exit")
         exit()
     output = os.path.splitext(sys.argv[1])[0]
-    if 'rb4' in sys.argv:
+    if '-rb4' in sys.argv:
         rb4PP = True
     else:
         rb4PP = False
-    if 'separate' in sys.argv:
+    if '-separate' in sys.argv:
         oneVenue = False
     else:
         oneVenue = True
