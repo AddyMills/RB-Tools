@@ -196,10 +196,10 @@ def pullData(anim, start, beat, origPP):
             event.append(chr(anim[start]))
             start += 1
         if not event:
-            if not eventsList:
-                eventsList = -1
-            else:
+            if eventsList:
                 event = eventsList[-1].event
+            else:
+                eventList = -1
         else:
             event = ''.join(event)
             if event in ppDic:
@@ -253,7 +253,7 @@ def parseData(eventsDict, mid, oneVenue):
                 tempTrack = MidiTrack()
                 prevType = 'note_off'
                 for y, x in enumerate(eventsDict[tracks]):
-                    if x.event == 'none':
+                    if x.event == 'none' or not x.event:
                         continue
                     timeVal = x.time - timeStart
                     noteVal = 0
@@ -357,7 +357,10 @@ def parseData(eventsDict, mid, oneVenue):
                     event_msgs.pop(i)
                     break
             for msg in event_msgs:
-                newMid.tracks[-1].append(MetaMessage.from_dict(msg))
+                if "note_" in msg['type']:
+                    newMid.tracks[-1].append(Message.from_dict(msg))
+                else:
+                    newMid.tracks[-1].append(MetaMessage.from_dict(msg))
     # print(newMid.tracks)
     return newMid
 
